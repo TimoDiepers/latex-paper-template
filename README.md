@@ -51,9 +51,9 @@ letter, and freezes when you open the next, so what you sent stays as sent.
 | `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | the same, plus the annotated manuscript and the response letter |
 
 Revising and resubmitting are one step. You mark up the manuscript, answer the
-reviewers, and generate that round's package. `revision_1/` ships filled in as a
-worked example, with one of each kind of tracked change wired to the letter, so
-overwrite it when your first reviews arrive.
+reviewers, and generate that round's package. The repository ships with `manuscript/`
+alone. Every other folder, including each `submission/`, appears when you run one of
+the scripts.
 
 The whole lifecycle looks like this.
 
@@ -187,10 +187,11 @@ Reviews arrive. Open the next folder with
 uv run scripts/new_revision.py
 ```
 
-then rename `manuscript.tex` to `manuscript_annotated.tex` and load the `changes`
-package. Copy the preamble block from this template's `revision_1/`, along with its
-`response_to_reviewers.tex`, since the manuscript stage has no letter to carry
-forward. From here on, a round means editing **two files**.
+That folder arrives ready to work in. The manuscript is renamed to
+`manuscript_annotated.tex` and the `changes` package is loaded into its preamble, and
+a `response_to_reviewers.tex` plus empty `reviewer_comments.md` and `cover_letter.md`
+are placed alongside it from `scripts/assets/`. From here on, a round means editing
+**two files**.
 
 **`manuscript_annotated.tex`**, the manuscript, with every change marked.
 
@@ -320,21 +321,29 @@ Two flags are available. `--no-build` stops after writing the `.tex` files, and
 
 ## Layout
 
+What the repository ships.
+
 ```
 manuscript/                 the paper, written here and submitted from here
   manuscript.tex              may keep target journal, reviewer suggestions, TOC,
                               all of which the generator strips
   figs/
-  submission/                 GENERATED, the upload
-revision_1/                 first round of review
+references.bib              one bibliography, shared by every stage
+scripts/                    make_submission.py, new_revision.py
+  assets/                     the response letter and notes a revision starts from
+```
+
+What appears as you go.
+
+```
+manuscript/submission/      GENERATED, the initial submission
+revision_1/                 first round of review, opened by new_revision.py
   manuscript_annotated.tex    the manuscript, with changes marked
   response_to_reviewers.tex
   reviewer_comments.md, cover_letter.md
   figs/
   submission/                 GENERATED, the upload
 revision_2/                 second round, and so on
-references.bib              one bibliography, shared by every stage
-scripts/                    make_submission.py, new_revision.py
 ```
 
 `references.bib` is shared, cited as `../references`, and can be regenerated from a

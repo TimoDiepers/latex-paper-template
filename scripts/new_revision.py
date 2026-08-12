@@ -38,6 +38,22 @@ SOURCE_DIRS = ("figs",)
 STAGE_MANUSCRIPT = "manuscript"
 REVISION_PREFIX = "revision_"
 
+ASSETS = Path(__file__).resolve().parent / "assets"
+
+# Loaded into the manuscript the first time it becomes a revision. xcolor is
+# already in the preamble, which \setdeletedmarkup needs.
+CHANGES_PREAMBLE = r"""
+% Tracked changes for the revision (see https://ctan.org/pkg/changes).
+% This file is the annotated version, so the changes stay visible. The clean
+% version is produced by scripts/make_submission.py, which accepts them.
+\usepackage{changes}
+\definechangesauthor[color=blue]{R1}
+% ulem-based underline/strikeout breaks around superscript \cite, so use plain markup
+\setaddedmarkup{#1}
+\setdeletedmarkup{\textcolor{gray}{[deleted: #1]}}
+
+"""
+
 
 def has_manuscript(p: Path) -> bool:
     return any((p / n).exists() for n in ("manuscript_annotated.tex", "manuscript.tex"))
@@ -95,10 +111,22 @@ def main() -> int:
     if dst.exists():
         ap.error(f"{dst} already exists; delete it or pass a different --to")
 
+    # A manuscript that has not carried tracked changes yet becomes the annotated
+    # one here, and the files a revision needs but the manuscript stage has none of
+    # are taken from scripts/assets/.
+    starting_revision = (src / "manuscript.tex").exists() and not (
+        src / "manuscript_annotated.tex"
+    ).exists()
+
     planned: list[tuple[Path, Path]] = []
     for name in SOURCE_FILES:
         if (src / name).exists():
-            planned.append((src / name, dst / name))
+            target = "manuscript_annotated.tex" if starting_revision and name == "manuscript.tex" else name
+            planned.append((src / name, dst / target))
+    if starting_revision:
+        for asset in sorted(ASSETS.iterdir()):
+            if asset.is_file() and not (dst / asset.name).exists():
+                planned.append((asset, dst / asset.name))
     for name in SOURCE_DIRS:
         for p in sorted((src / name).rglob("*")):
             if p.is_file() and not p.name.startswith("."):
@@ -115,18 +143,20 @@ def main() -> int:
         d.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(s, d)
 
-    manuscript = next(
-        (n for n in SOURCE_FILES if n.startswith("manuscript") and (dst / n).exists()),
-        "manuscript.tex",
-    )
-    print(f"\ncopied {len(planned)} files. Next steps:")
-    print(f"  1. edit {dst.name}/{manuscript} -- accept the previous round's tracked")
-    print("     changes, then mark up the new round")
-    if manuscript == "manuscript.tex":
-        print("     (rename it to manuscript_annotated.tex and load the changes package,")
-        print("      since this round carries tracked changes)")
-    print(f"  2. rewrite {dst.name}/response_to_reviewers.tex for the new comments")
-    print(f"  3. uv run scripts/make_submission.py")
+    if starting_revision:
+        annotated = dst / "manuscript_annotated.tex"
+        text = annotated.read_text()
+        annotated.write_text(text.replace(r"\begin{document}", CHANGES_PREAMBLE + r"\begin{document}", 1))
+
+    print(f"\nwrote {len(planned)} files into {dst.name}/. Next steps:")
+    if starting_revision:
+        print(f"  1. mark up {dst.name}/manuscript_annotated.tex with \\added, \\replaced")
+        print("     and \\deleted, and \\linelabel where the letter needs to point")
+    else:
+        print(f"  1. edit {dst.name}/manuscript_annotated.tex -- accept the previous round's")
+        print("     tracked changes, then mark up the new round")
+    print(f"  2. write {dst.name}/response_to_reviewers.tex for this round's comments")
+    print("  3. uv run scripts/make_submission.py")
     print(f"  4. git add {dst.name}")
     return 0
 
