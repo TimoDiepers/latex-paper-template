@@ -5,23 +5,27 @@ asks for, and keeps every submitted version intact.
 
 ## What it does
 
-| You write | We generate |
-|---|---|
-| `manuscript_annotated.tex`<br>with `\added{…}`, `\replaced{…}{…}`, `\deleted{…}` | `manuscript_clean.pdf` — changes accepted<br>`manuscript_annotated.pdf` — changes visible |
-| `response_to_reviewers.tex` | `response_to_reviewers.pdf` — line numbers matching the above |
-| `figs/` | `graphical_abstract.pdf` — for the separate upload slot |
-| `references.bib` | `latex_source_submission.zip` — source files with inline refs |
+**You write**, per submission:
 
-So you never do the fiddly parts by hand:
+- `manuscript_annotated.tex` — one manuscript, with your changes marked using
+  `\added{…}`, `\replaced{…}{…}` and `\deleted{…}`
+- `response_to_reviewers.tex` — the letter, pointing at the manuscript by label
+- `figs/` beside it, and one `references.bib` shared by the whole paper
 
-- **no second copy of the text.** You mark up one manuscript; the clean version is
-  generated, never maintained alongside it.
-- **line numbers that agree.** The response letter's `(line 42)` points at the
-  manuscript in the same package, not at a stale local build.
-- **internal notes stay internal.** Target journal, suggested reviewers, table of
-  contents, your `%` comments — stripped from everything that ships.
-- **one bibliography.** Keep `references.bib` synced from Zotero or Citavi; only the
-  entries you cite are inlined into the submitted `.tex`, and no `.bib` is sent.
+**One command generates** everything the journal wants:
+
+- `manuscript_clean.pdf` — the manuscript, changes accepted
+- `manuscript_annotated.pdf` — the same text, changes visible for the editor
+- `response_to_reviewers.pdf` — the letter, its line numbers matching those PDFs
+- `graphical_abstract.pdf` — on its own, for the slot journals reserve for it
+- `latex_source_submission.zip` — the source and figures, cited references inlined
+
+You never keep a clean copy of the text in step with the marked-up one, and the
+letter's `(line 42)` always points at the manuscript in the same package rather than
+a stale local build. Two more things happen on the way out: internal notes — target
+journal, suggested reviewers, table of contents, your `%` comments — are stripped
+from everything that ships, and only the references you actually cite are inlined, so
+`references.bib` can stay a Zotero or Citavi export without ever being sent.
 
 ## Stages
 
