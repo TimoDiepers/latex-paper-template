@@ -20,11 +20,13 @@ The whole lifecycle looks like this.
 
 ```
 # 1. write the paper in manuscript/, previewing the PDF in your editor
+uv run scripts/export_to_word.py       # optional, for feedback in Word
 uv run scripts/prepare_submission.py   # then upload manuscript/submission/
 
 # 2. reviews arrive
 uv run scripts/new_revision.py         # opens revision_1/, ready to edit
 #    mark up the manuscript, write the response letter
+uv run scripts/export_to_word.py       # optional again, manuscript and letter
 uv run scripts/prepare_submission.py   # then upload revision_1/submission/
 
 # 3. more reviews
@@ -161,28 +163,39 @@ answered in the new `manuscript_annotated.tex` before marking up the new round.
 
 ## Word export for internal review
 
-Some people would rather write their comments in Word. This exports the manuscript for
-them.
+Some people would rather write their comments in Word. This exports the current stage
+for them.
 
 ```
-uv run scripts/export_to_word.py
+uv run scripts/export_to_word.py                          # the newest stage
+uv run scripts/export_to_word.py revision_1               # a specific stage
+uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
 ```
 
-The result is `<stage>/manuscript_for_review.docx`, and it is gitignored, since it is a
-convenience rather than a version of the paper. Feedback comes back as Word comments or
-edits that you carry into the `.tex` by hand.
+At the manuscript stage that is the manuscript alone. In a revision it is the annotated
+manuscript and the response letter, since whoever reads the round wants both. Name a
+single `.tex` file to convert only that one. The results are written beside the sources
+as `<name>_for_review.docx` and are gitignored, being a convenience rather than a
+version of the paper. Feedback comes back as Word comments or edits that you carry into
+the `.tex` by hand.
 
 The export reads like the PDF. It runs a real LaTeX build first and takes the numbers
 from it, so citations appear as the same superscript numbers, `\citet` prints the same
 author label, several citations at once compress to the same range such as 1–3, and the
 reference list at the end is numbered in the same order. References to a figure or an
 equation carry the number LaTeX gave them. Figures are embedded as PNG, because Word
-cannot display the PDF figures the manuscript uses. Tracked changes are accepted, and
-the internal front matter is kept, since this is not a document a journal sees.
+cannot display the PDF figures the manuscript uses. The internal front matter is kept,
+since this is not a document a journal sees.
 
-Equations become Word equations and lose their own numbering, though references to them
-in the text stay correct. The export needs `pandoc` and `pdftoppm` from poppler, on top
-of the LaTeX installation.
+The letter keeps its structure without its colours, which do not survive the trip. Each
+comment becomes a heading followed by the comment in italics, your answer stays plain,
+and quoted manuscript text becomes an indented block. Its line references show the
+numbers from the line-numbered PDF, because a Word file has no line numbers of its own.
+
+Two things do not carry over. Equations become Word equations and lose their own
+numbering, though references to them in the text stay correct. Tracked changes are
+accepted rather than shown, so the Word manuscript reads as the revised text. The export
+needs `pandoc` and `pdftoppm` from poppler, on top of the LaTeX installation.
 
 ## What the generator does
 
