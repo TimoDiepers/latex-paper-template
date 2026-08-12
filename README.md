@@ -1,99 +1,185 @@
 # LaTeX paper template
 
-A structure for taking a manuscript from internal draft through submission and
-however many rounds of revision, with the journal-facing files generated rather
-than maintained by hand.
+Write a paper, submit it, revise it, resubmit it — without hand-maintaining the
+pile of files each journal asks for. You write prose and mark your changes; the
+tooling produces the clean manuscript, the marked-up manuscript, the response
+letter with correct line references, the graphical abstract and the source
+archive.
 
 Everything here is placeholder text. Replace it and delete what you do not need.
 
-## Workflow
+## At a glance
 
-There is exactly **one file you edit** per revision, and everything a journal
-receives is generated from it:
+```
+draft/   ──►   rev0/   ──►   rev1/   ──►   rev2/   ──►  …
+write it       submit        revise        resubmit
+```
 
-| | |
-|---|---|
-| **You edit** | `rev<N>/manuscript_annotated.tex` — the marked-up manuscript, plus `response_to_reviewers.tex` and the figures beside it |
-| **Generated** | everything in `rev<N>/submission/`, including the clean manuscript. Regenerated from scratch on every run, so nothing there is worth editing |
+1. **Write** the paper in `draft/`, iterating with your coauthors.
+2. **Submit**: open `rev0/`, drop the internal-only front matter, generate the
+   package, upload it.
+3. **Revise**: open `rev1/`, mark up the manuscript and write the response letter,
+   generate the package, upload it.
+4. **Resubmit**: open `rev2/`, and repeat step 3 for as many rounds as it takes.
 
-A round of revision goes:
+The whole lifecycle in commands:
 
-1. **Edit** `rev<N>/manuscript_annotated.tex`. Mark every change with `\added`,
-   `\replaced` or `\deleted`, and drop a `\linelabel{ln:…}` wherever the response
-   letter needs to point.
-2. **Preview** in the revision folder: build `manuscript_annotated.tex`, then
-   `response_to_reviewers.tex` (it reads the manuscript's line numbers, so the
-   manuscript goes first). These are drafts for your own eyes.
-3. **Generate the package**: `uv run scripts/make_submission.py`. This writes
-   `rev<N>/submission/` with the clean and annotated manuscripts, the response
-   letter rebuilt against the shipped manuscript, the graphical abstract, and a
-   source archive.
-4. **Upload** the files in `rev<N>/submission/` — those, not the previews.
-5. **Next round**: `uv run scripts/new_revision.py` copies the sources into
-   `rev<N+1>/`, leaving this revision frozen. Accept the round you just finished
-   in the new `manuscript_annotated.tex`, then start again at step 1.
+```
+cd draft && pdflatex … manuscript.tex               # 1. write and preview
+uv run scripts/new_revision.py --from draft --to rev0
+uv run scripts/make_submission.py rev0              # 2. submit rev0/submission/
+uv run scripts/new_revision.py --to rev1            # 3. reviews arrived
+uv run scripts/make_submission.py                   #    upload rev1/submission/
+uv run scripts/new_revision.py                      # 4. next round
+```
 
-There is no clean `.tex` to keep in step with the annotated one: accepting the
-tracked changes happens inside the generator, and the result only exists in
-`submission/`.
+## The four stages
 
-## Starting a new paper
+The paper moves through numbered folders. Each one is self-contained, and the
+previous one freezes the moment you move on, so you can always see exactly what
+was sent and when.
 
-Write in `draft/` until the manuscript is ready to submit. Then
+| Stage | Folder | You write | You get |
+|---|---|---|---|
+| 1. Prepare | `draft/` | `manuscript.tex` | a PDF for coauthors and internal review |
+| 2. Submit | `rev0/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
+| 3. Revise | `rev1/` | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
+| 4. Resubmit | `rev2/`, … | same two files | same package, one round later |
+
+Only the newest folder is live. `uv run scripts/make_submission.py` always builds
+the package for it, and `uv run scripts/new_revision.py` always opens the next one.
+
+---
+
+## 1. Prepare the initial version — `draft/`
+
+This is where the paper actually gets written, and where you will spend most of
+your time. Edit `draft/manuscript.tex`, drop figures in `draft/figs/`, add
+references to `references.bib` at the repository root.
+
+```
+cd draft
+pdflatex -synctex=1 -interaction=nonstopmode -file-line-error manuscript.tex
+bibtex manuscript
+pdflatex … ; pdflatex …          # twice more, to settle refs
+```
+
+Iterate here as long as you like: send the PDF round, collect comments, rewrite.
+Lines are numbered from the abstract onwards, every fifth one, so coauthors can
+point at them.
+
+`draft/` is also the only stage that carries the things you want for internal
+review but never want a journal to see — the target journal, the suggested
+reviewers, and a table of contents. Use `\hl{…}` to highlight anything still
+open. All of it disappears from the next stage.
+
+## 2. Submit — `rev0/`
+
+When the manuscript is ready:
 
 ```
 uv run scripts/new_revision.py --from draft --to rev0
 ```
 
-and strip the internal-only front matter from `rev0/manuscript.tex` — the target
-journal, the reviewer suggestions and the table of contents belong to internal
-review, not to a journal. When the reviews arrive,
-`uv run scripts/new_revision.py --to rev1`, rename the manuscript to
-`manuscript_annotated.tex`, and add the `changes` package block from
-`rev1/manuscript_annotated.tex` in this template.
-
-The `rev0/` and `rev1/` folders shipped here are worked examples of those two
-stages. Delete them once your own paper has replaced them.
-
-## Layout
-
-Each `rev<N>/` folder holds one revision's working set: the manuscript, the
-figures and the response letter. `references.bib` is shared by all revisions and
-lives at the repository root, cited as `../references` from a revision folder.
-
-The newest `rev<N>/` is the one being worked on. Older ones are frozen. Because
-the bibliography is shared, an old revision's *working* build can pick up later
-reference edits — but every **submitted** artifact has its bibliography inlined
-(everything under `rev<N>/submission/`), so the record of what was actually sent
-never moves.
+Then delete the internal-only front matter from `rev0/manuscript.tex`: the
+`Target Journal` and `Reviewer Suggestions` sections, and `\tableofcontents`.
+`draft/` keeps its copy, frozen.
 
 ```
-draft/                    pre-submission internal draft
-  manuscript.tex            the only version that carries the target journal, the
-                            reviewer suggestions and the table of contents
-  figs/
-rev0/                     first submission — none of those three
-  manuscript.tex
-  figs/
-rev1/                     first revision
-  manuscript_annotated.tex  THE source you edit
-  figs/                     figures used by this revision, plus their editable sources
-  response_to_reviewers.tex
-  reviewer_comments.md, cover_letter.md
-  submission/               GENERATED — the journal-ready upload
-references.bib            the shared bibliography
-scripts/                  tooling shared across revisions
-pyproject.toml, uv.lock, .python-version
+uv run scripts/make_submission.py rev0
 ```
 
-The manuscript is named `manuscript_annotated.tex` from the first revision
-onwards, because that is what it is — the marked-up source. An original
-submission has no tracked changes and just uses `manuscript.tex`.
+`rev0/submission/` now holds the manuscript PDF, the graphical abstract as its own
+file, and a zip of the LaTeX source with its figures — five files at most, each
+one an upload. Send those.
+
+## 3. Revise — `rev1/`
+
+Reviews arrive. Open the next folder and set it up for tracked changes:
+
+```
+uv run scripts/new_revision.py --to rev1
+```
+
+Rename `rev1/manuscript.tex` to `rev1/manuscript_annotated.tex` and load the
+`changes` package — copy the preamble block from the `rev1/manuscript_annotated.tex`
+shipped with this template. From here on, a revision means editing **two files**:
+
+**`manuscript_annotated.tex`** — the manuscript, with every change marked:
+
+```latex
+\replaced{the new wording}{the old wording}
+\added{a sentence a reviewer asked for}
+\deleted{a sentence a reviewer found redundant}
+\linelabel{ln:gap}      % an anchor the response letter can point at
+```
+
+**`response_to_reviewers.tex`** — the letter, with the conventions ready to use:
+
+```latex
+\comm{1.1}{The comment, quoted verbatim.}          % italics
+\begin{response} Your answer. \end{response}
+\begin{revisedtext} The revised text. \end{revisedtext}   % blue
+\lnp{ln:gap}                                       % -> (line 42), live
+\todoitem{Not addressed yet.}                      % internal marker
+```
+
+Paste the comments into `rev1/reviewer_comments.md` first if it helps to work
+through them, and draft the cover letter in `rev1/cover_letter.md`.
+
+Preview as you go — manuscript first, then the letter, which reads the
+manuscript's line numbers:
+
+```
+cd rev1
+pdflatex … manuscript_annotated.tex ; bibtex manuscript_annotated ; pdflatex … ; pdflatex …
+pdflatex … response_to_reviewers.tex ; bibtex response_to_reviewers ; pdflatex … ; pdflatex …
+```
+
+Then build the package:
+
+```
+uv run scripts/make_submission.py
+```
+
+`rev1/submission/` holds the clean manuscript, the marked-up manuscript for the
+editor, the response letter, the graphical abstract, and the source zip. Send
+those, not the previews.
+
+## 4. Resubmit — `rev2/` and beyond
+
+```
+uv run scripts/new_revision.py
+```
+
+Accept the round you just finished in the new `manuscript_annotated.tex` — the
+markup from round one has been answered, so clear it before marking up round
+two — and go back to step 3. `rev1/` freezes with its own submission package.
+
+---
+
+## What you edit, what is generated
+
+| | |
+|---|---|
+| **Yours** | the manuscript in the newest folder, `response_to_reviewers.tex`, `figs/`, `references.bib`, the two `.md` notes |
+| **Generated** | everything in `rev<N>/submission/`. Wiped and rebuilt on every run — never edit it, and never keep a clean `.tex` of your own in step with the annotated one. Accepting the tracked changes happens inside the generator |
+
+## Why the previews are not what you send
+
+Building in the revision folder gives you working drafts. The generated manuscript
+differs from them slightly — the internal front matter is gone, comments are
+stripped — which shifts every line. So the letter you build locally cites
+different line numbers than the one in `submission/`, which is rebuilt against the
+manuscript that actually ships. Always send the `submission/` copies.
+
+A missing or stale reference prints in red as
+`[line ?? -- rebuild manuscript_annotated.tex]` rather than a silent `??`, so a
+broken pointer cannot slip past you.
 
 ## Builds
 
-The build recipe is **pdflatex, bibtex, pdflatex, pdflatex**, with output beside
-the source:
+The recipe is **pdflatex, bibtex, pdflatex, pdflatex**, output beside the source:
 
 ```
 pdflatex -synctex=1 -interaction=nonstopmode -file-line-error <file>.tex
@@ -101,13 +187,10 @@ bibtex <file>
 pdflatex … ; pdflatex …
 ```
 
-Run these from inside the revision folder — `bibtex` resolves `../references`
-relative to the working directory, so building from the repository root fails.
-The manuscript goes first, because the response letter pulls its line numbers
-via `xr`.
+Run it **from inside the folder** — `bibtex` resolves `../references` relative to
+the working directory, so building from the repository root fails.
 
-To get the same recipe out of VS Code's LaTeX Workshop, put this in your
-settings:
+For VS Code's LaTeX Workshop:
 
 ```jsonc
 "latex-workshop.latex.outDir": "%DIR%",
@@ -121,87 +204,69 @@ settings:
 ]
 ```
 
-The working builds are previews. **Their line numbers are not the ones the editor
-sees**, because the generated manuscript differs slightly, so the letter built
-here cites different numbers than the one in `submission/`. Send the
-`submission/` copies.
+Rendered PDFs are tracked, so each stage's output is in the history beside its
+source. Intermediate artifacts (`.aux`, `.log`, `.synctex.gz`, …) are gitignored.
 
-The rendered PDFs are tracked, so every revision's rendered state is in the
-history next to its sources. Intermediate artifacts (`.aux`, `.log`,
-`.synctex.gz`, …) are gitignored — they are regenerable and produce
-multi-thousand-line diffs.
+## What the generator does
+
+`uv run scripts/make_submission.py [rev<N>]` — newest folder by default:
+
+- accepts every tracked change into a **clean** manuscript, and keeps an
+  **annotated** one with the changes visible for the editor (only when the source
+  has tracked changes, so a first submission yields the clean one alone);
+- numbers the lines of both from the abstract, printing every fifth number;
+- removes the highlighting, the table of contents, the draft date, and the
+  `Target Journal` and `Reviewer Suggestions` sections;
+- keeps the graphical abstract in the document and exports it separately for the
+  upload slot journals reserve for it;
+- inlines the bibliography, so the shipped `.tex` needs no `.bib`;
+- rebuilds the response letter in place, so its line references match the shipped
+  manuscript;
+- strips your comments, leaving one line of provenance — notes to yourself never
+  reach the journal;
+- archives the source and figures into `latex_source_submission.zip`, then removes
+  the loose files, leaving a directory where every file is one upload;
+- warns if placeholder text (`XX`, `HARDWARE`, `TO BE DONE`, `\todoitem`) survived,
+  naming file and line, and builds anyway.
+
+Flags: `--no-build` stops after writing the `.tex` files, `--outdir` writes
+elsewhere.
+
+## Layout
+
+```
+draft/                    the initial version, for internal review
+  manuscript.tex            keeps target journal, reviewer suggestions, TOC
+  figs/
+rev0/                     first submission — none of those three
+  manuscript.tex
+  figs/
+rev1/                     first revision
+  manuscript_annotated.tex  the manuscript, with changes marked
+  response_to_reviewers.tex
+  reviewer_comments.md, cover_letter.md
+  figs/
+  submission/               GENERATED — the upload
+references.bib            one bibliography, shared by every stage
+scripts/                  make_submission.py, new_revision.py
+```
+
+`references.bib` is shared, cited as `../references`. An old stage's *working*
+build can therefore pick up later reference edits — but everything already sent
+has its bibliography inlined inside `submission/`, so the record never moves.
+
+The manuscript is called `manuscript_annotated.tex` from the first revision
+onwards, because that is what it is. Before that it is just `manuscript.tex`.
 
 ## Tooling
 
-The two scripts are standard library only, so `uv.lock` pins an interpreter and
-nothing else. From the repository root:
+Both scripts are standard library only; `uv.lock` pins an interpreter and nothing
+else.
 
 ```
-uv run scripts/make_submission.py           # build the submission package
-uv run scripts/new_revision.py --dry-run    # start the next revision
+uv run scripts/make_submission.py           # build the package for the newest stage
+uv run scripts/new_revision.py --dry-run    # see what the next stage would get
+uv run scripts/new_revision.py              # open it
 ```
 
-`uv sync` if you want the environment up front. Plain `python3 scripts/…` works
-equally well; `pdflatex` and `bibtex` must be on `PATH`.
-
-## Submission package
-
-```
-uv run scripts/make_submission.py          # newest rev<N>
-uv run scripts/make_submission.py rev1     # a specific revision
-```
-
-It derives the journal-ready files from that revision's manuscript, so the two
-never drift apart. It:
-
-- writes a **clean** variant with every tracked change accepted, and an
-  **annotated** variant that keeps the changes visible for the editor — the
-  latter only when the source actually has tracked changes, so an original
-  submission yields the clean manuscript alone;
-- numbers the lines of both variants from the abstract onwards, printing every
-  fifth number, since reviewers cite line numbers in both;
-- removes the highlighting, the table of contents, the draft date, and the
-  internal-only "Target Journal" and "Reviewer Suggestions" sections;
-- keeps the graphical abstract in the document and also exports it on its own,
-  for the separate upload slot;
-- inlines the bibliography as a `thebibliography` environment, so the shipped
-  `.tex` needs nothing from the shared `references.bib`;
-- copies the referenced figures and builds each variant, then builds the response
-  letter *in place*, so its `xr` line references match the annotated manuscript
-  that ships rather than the working preview;
-- strips the source's comments, so notes to yourself never travel to the journal,
-  leaving one line of provenance at the top;
-- archives the clean source and the figures into `latex_source_submission.zip`,
-  then removes the loose `.tex` files and `figs/` again, so every remaining file
-  in the directory is one upload;
-- warns about leftover placeholder text (`XX`, `HARDWARE`, `TO BE DONE`,
-  `\todoitem`) naming the file and line, and builds anyway.
-
-`rev<N>/submission/` then holds everything a journal asks for and nothing else:
-
-| | |
-|---|---|
-| `manuscript_clean.pdf` | the manuscript to upload |
-| `manuscript_annotated.pdf` | the marked-up version for the editor |
-| `response_to_reviewers.pdf` | rebuilt here, citing the shipped manuscript's line numbers |
-| `graphical_abstract.pdf` | the graphical abstract on its own |
-| `latex_source_submission.zip` | the LaTeX source — `manuscript_clean.tex` and `figs/`, no PDFs |
-
-Flags: `--no-build` writes the `.tex` files and stops, leaving them in place for
-inspection; `--outdir` places the directory elsewhere.
-
-## Response letter
-
-`rev<N>/response_to_reviewers.tex` carries the conventions ready to use:
-
-- `\comm{1.1}{…}` for the quoted comment, in italics;
-- `response` and `revisedtext` environments for the answer and the quoted
-  manuscript text, the latter in blue;
-- `\lnp{ln:label}` for a live line reference into the annotated manuscript,
-  which turns red if the reference cannot be resolved rather than silently
-  printing `??`;
-- `\todoitem{…}` to mark a comment you have not addressed yet — the generator
-  warns if one survives.
-
-Its title block mirrors the manuscript's, so both carry the same authors and
-affiliations at the same sizes.
+`python3 scripts/…` works equally well. `pdflatex` and `bibtex` must be on `PATH`.
