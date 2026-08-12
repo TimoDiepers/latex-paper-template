@@ -8,7 +8,9 @@ Two scripts do the work.
 
 - **`scripts/prepare_submission.py`** builds the files you upload, for whichever stage
   the paper is at.
-- **`scripts/new_revision.py`** opens the next revision, set up and ready to edit.
+- **`scripts/new_revision.py`** opens the next revision with its documents already
+  prepared, meaning the manuscript carried over and set up for tracked changes, and a
+  response letter and notes ready to fill in.
 
 ## What it does
 
