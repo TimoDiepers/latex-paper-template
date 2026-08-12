@@ -12,6 +12,10 @@ Two scripts do the work.
   prepared, meaning the manuscript carried over and set up for tracked changes, and a
   response letter and notes ready to fill in.
 
+A third script is a convenience rather than part of that path.
+**`scripts/export_to_word.py`** exports the manuscript to Word, which is useful while a
+draft circulates internally and colleagues would rather comment there.
+
 The whole lifecycle looks like this.
 
 ```
@@ -154,6 +158,31 @@ together, in that order.
 
 For the next round, run `new_revision.py` again. Clear the markup you have just
 answered in the new `manuscript_annotated.tex` before marking up the new round.
+
+## Word export for internal review
+
+Some people would rather write their comments in Word. This exports the manuscript for
+them.
+
+```
+uv run scripts/export_to_word.py
+```
+
+The result is `<stage>/manuscript_for_review.docx`, and it is gitignored, since it is a
+convenience rather than a version of the paper. Feedback comes back as Word comments or
+edits that you carry into the `.tex` by hand.
+
+The export reads like the PDF. It runs a real LaTeX build first and takes the numbers
+from it, so citations appear as the same superscript numbers, `\citet` prints the same
+author label, several citations at once compress to the same range such as 1–3, and the
+reference list at the end is numbered in the same order. References to a figure or an
+equation carry the number LaTeX gave them. Figures are embedded as PNG, because Word
+cannot display the PDF figures the manuscript uses. Tracked changes are accepted, and
+the internal front matter is kept, since this is not a document a journal sees.
+
+Equations become Word equations and lose their own numbering, though references to them
+in the text stay correct. The export needs `pandoc` and `pdftoppm` from poppler, on top
+of the LaTeX installation.
 
 ## What the generator does
 

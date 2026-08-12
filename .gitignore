@@ -19,6 +19,9 @@ __pycache__/
 # Word lock files
 ~$*
 
+# Generated for internal review, not part of the paper's history
+*_for_review.docx
+
 # PDFs are deliberately tracked, including the in-place working builds, so that
 # every revision's rendered state is in the history alongside its sources.
 
