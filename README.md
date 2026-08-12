@@ -82,7 +82,7 @@ folder, VS Code offers to install the extensions below.
 
 | Extension | | What it does |
 |---|---|---|
-| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page |
+| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page with SyncTeX |
 | [Highlight](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) | recommended | colours `\added` blue and `\deleted` struck-through grey in the editor, matching the annotated PDF. Rules are in `.vscode/settings.json` |
 | [LTeX](https://marketplace.visualstudio.com/items?itemName=valentjn.vscode-ltex) | optional | grammar and spell checking that parses LaTeX rather than flagging its markup |
 | [ZoTeX](https://marketplace.visualstudio.com/items?itemName=raykr.zotex) or [Zotero](https://marketplace.visualstudio.com/items?itemName=mblode.zotero) | optional | inserts `\cite{…}` keys from a Zotero library |
@@ -281,6 +281,11 @@ the working directory and building from the repository root fails.
 
 In VS Code this is already set up, because `.vscode/settings.json` defines the recipe
 and the build button uses it. Other editors need the four steps configured by hand.
+
+The `-synctex=1` flag is what lets you jump between the source and the page. In VS
+Code that needs no extra extension beyond LaTeX Workshop. Press ctrl/cmd+alt+j in the
+editor to find the spot in the PDF, and ctrl/cmd+click in the PDF to jump back to the
+line that produced it.
 
 Rendered PDFs are tracked, so each stage's output is in the history beside its
 source. Intermediate artifacts such as `.aux`, `.log` and `.synctex.gz` are

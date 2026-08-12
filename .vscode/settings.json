@@ -36,6 +36,10 @@
   // scripts/make_submission.py runs exactly this, so the editor and the generated
   // submission PDFs come out identical.
   "latex-workshop.latex.outDir": "%DIR%",
+  // SyncTeX. The -synctex=1 flag below writes the .synctex.gz that lets you jump
+  // between source and page, with ctrl/cmd+alt+j from the editor and ctrl/cmd+click
+  // in the viewer. No extra extension is needed for this.
+  "latex-workshop.view.pdf.viewer": "tab",
   // Rebuild when you save, rather than on any file change. The default
   // (onFileChange) also fires when scripts/make_submission.py writes into the
   // folder, which starts builds you did not ask for.
@@ -51,11 +55,12 @@
   "latex-workshop.latex.recipes": [
     { "name": "Full build", "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"] }
   ],
-  // Intermediate files are cleaned; the PDFs and .aux stay (the response letter
-  // reads the manuscript's .aux for its line references).
+  // Intermediate files that Clean removes. The PDFs stay, .aux stays because the
+  // response letter reads the manuscript's for its line references, and
+  // .synctex.gz stays because source-to-page jumping needs it.
   "latex-workshop.latex.clean.fileTypes": [
     "*.bbl", "*.blg", "*.idx", "*.ind", "*.lof", "*.lot", "*.out", "*.toc",
     "*.fls", "*.log", "*.fdb_latexmk", "*.snm", "*.nav", "*.run.xml", "*.bcf",
-    "*.synctex.gz", "*.loc", "*.soc"
+    "*.loc", "*.soc"
   ]
 }
