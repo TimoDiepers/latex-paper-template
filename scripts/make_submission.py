@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the submission package for a revision of the manuscript.
 
-Each stage of the paper lives in its own folder -- draft/, initial_submission/,
+Each stage of the paper lives in its own folder -- draft/, manuscript/,
 revision_1/, revision_2/, ... -- holding the manuscript, figs/ and the response
 letter. The bibliography is shared by all of them and lives at the repository
 root. The manuscript there is the single
@@ -12,8 +12,9 @@ and `\\linelabel` anchors referenced by the response letter, highlighted interna
 notes (target journal, reviewer suggestions), a table of contents and a draft
 date.
 
-This script strips the internal scaffolding and writes <stage>/submission/ --
-everything a journal asks for, and nothing else:
+Every stage produces its own package, the initial submission as much as any
+revision. This script strips the internal scaffolding and writes
+<stage>/submission/ -- everything a journal asks for, and nothing else:
 
     manuscript_clean.pdf            tracked changes accepted
     manuscript_annotated.pdf        tracked changes visible
@@ -58,7 +59,7 @@ SOURCE_NAMES = ("manuscript_annotated.tex", "manuscript.tex")
 # The stages a paper moves through, in order: the draft, the first submission,
 # then one folder per round of review.
 STAGE_DRAFT = "draft"
-STAGE_INITIAL = "initial_submission"
+STAGE_INITIAL = "manuscript"
 REVISION_PREFIX = "revision_"
 
 # Preamble lines dropped from every variant: review highlighting and the

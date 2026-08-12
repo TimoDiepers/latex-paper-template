@@ -1,7 +1,6 @@
 # LaTeX paper template
 
-Write a paper, submit it, and work through however many rounds of review it takes
-— without hand-maintaining the pile of files each journal asks for. You write
+Write a paper, submit it, and work through however many rounds of review it takes, without hand-maintaining the pile of files each journal asks for. You write
 prose and mark your changes; the tooling produces the clean manuscript, the
 marked-up manuscript, the response letter with correct line references, the
 graphical abstract and the source archive.
@@ -11,25 +10,26 @@ Everything here is placeholder text. Replace it and delete what you do not need.
 ## At a glance
 
 ```
-draft/   ──►   initial_submission/   ──►   revision_1/   ──►   revision_2/   ──►  …
-write it       submit it                   round 1             round 2
+draft/   ──►   manuscript/   ──►   revision_1/   ──►   revision_2/   ──►  …
+write it       submit it        round 1            round 2
 ```
 
 1. **Write** the paper in `draft/`, iterating with your coauthors.
-2. **Submit**: open `initial_submission/`, drop the internal-only front matter,
-   generate the package, upload it.
+2. **Submit**: open `manuscript/`, generate the package, upload it.
 3. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
    write the response letter, generate the package, upload it. Repeat per round.
 
-The folders sort chronologically in any file browser, so the paper's history reads
-top to bottom.
+Every stage produces its own `submission/` package the same way — the initial
+submission as much as any revision — so there is one command to remember rather
+than a different procedure per round. The folders sort chronologically in any file
+browser, so the paper's history reads top to bottom.
 
 The whole lifecycle in commands:
 
 ```
 cd draft && pdflatex … manuscript.tex        # 1. write and preview
-uv run scripts/new_revision.py              #    -> initial_submission/
-uv run scripts/make_submission.py           # 2. upload initial_submission/submission/
+uv run scripts/new_revision.py              #    -> manuscript/
+uv run scripts/make_submission.py           # 2. upload manuscript/submission/
 uv run scripts/new_revision.py              # 3. reviews arrived -> revision_1/
 uv run scripts/make_submission.py           #    upload revision_1/submission/
 uv run scripts/new_revision.py              #    next round -> revision_2/
@@ -47,7 +47,7 @@ on, so you can always see exactly what was sent and when.
 | Stage | Folder | You write | You get |
 |---|---|---|---|
 | Prepare | `draft/` | `manuscript.tex` | a PDF for coauthors and internal review |
-| Submit | `initial_submission/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
+| Submit | `manuscript/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
 | Revise, once per round | `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
 
 Revising and resubmitting are the same step: you mark up the manuscript, answer
@@ -78,7 +78,7 @@ review but never want a journal to see — the target journal, the suggested
 reviewers, and a table of contents. Use `\hl{…}` to highlight anything still
 open. All of it disappears from the next stage.
 
-## 2. Submit — `initial_submission/`
+## 2. Submit — `manuscript/`
 
 When the manuscript is ready:
 
@@ -86,16 +86,18 @@ When the manuscript is ready:
 uv run scripts/new_revision.py
 ```
 
-Then delete the internal-only front matter from
-`initial_submission/manuscript.tex`: the `Target Journal` and
-`Reviewer Suggestions` sections, and `\tableofcontents`. `draft/` keeps its copy,
-frozen.
+`draft/` freezes with its copy of everything, and you carry on in `manuscript/`.
+There is nothing to clean up by hand: the generator drops the target journal, the
+suggested reviewers and the table of contents on its own, so they cannot reach a
+journal even if you leave them in the source. Delete them from
+`manuscript/manuscript.tex` only if you want your local previews to match what
+ships — this template ships them already deleted.
 
 ```
 uv run scripts/make_submission.py
 ```
 
-`initial_submission/submission/` now holds the manuscript PDF, the graphical
+`manuscript/submission/` now holds the manuscript PDF, the graphical
 abstract as its own file, and a zip of the LaTeX source with its figures — each
 file an upload. Send those.
 
@@ -245,7 +247,7 @@ elsewhere.
 draft/                      the initial version, for internal review
   manuscript.tex              keeps target journal, reviewer suggestions, TOC
   figs/
-initial_submission/         first submission — none of those three
+manuscript/                 the paper as submitted
   manuscript.tex
   figs/
   submission/                 GENERATED — the upload
