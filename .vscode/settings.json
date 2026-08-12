@@ -1,0 +1,57 @@
+{
+  // Source-level coloring of the `changes` package markup (fabiospampinato.vscode-highlight).
+  // Additions -> blue, deletions -> gray + strikethrough, matching the annotated PDF.
+  // Brace patterns tolerate two levels of nesting (e.g. \added{... \citet{key} ...}).
+  "highlight.regexes": {
+    "(\\\\added(?:\\[[^\\]]*\\])?)(\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\})": {
+      "filterLanguageRegex": "latex",
+      "decorations": [
+        { "color": "#5A8DEE", "fontWeight": "bold" },
+        { "color": "#2F6FE0", "backgroundColor": "#5A8DEE18" }
+      ]
+    },
+    "(\\\\deleted(?:\\[[^\\]]*\\])?)(\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\})": {
+      "filterLanguageRegex": "latex",
+      "decorations": [
+        { "color": "#8A8A8A", "fontWeight": "bold" },
+        { "color": "#8A8A8A", "textDecoration": "line-through", "backgroundColor": "#8A8A8A15" }
+      ]
+    },
+    "(\\\\replaced(?:\\[[^\\]]*\\])?)(\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\})(\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\})": {
+      "filterLanguageRegex": "latex",
+      "decorations": [
+        { "color": "#5A8DEE", "fontWeight": "bold" },
+        { "color": "#2F6FE0", "backgroundColor": "#5A8DEE18" },
+        { "color": "#8A8A8A", "textDecoration": "line-through", "backgroundColor": "#8A8A8A15" }
+      ]
+    },
+    "(\\\\linelabel\\{ln:[^}]*\\})": {
+      "filterLanguageRegex": "latex",
+      "decorations": [{ "color": "#B08000", "fontStyle": "italic" }]
+    }
+  },
+  "highlight.maxMatches": 2000,
+
+  // Build recipe: pdflatex, bibtex, pdflatex, pdflatex, output beside the source.
+  // scripts/make_submission.py runs exactly this, so the editor and the generated
+  // submission PDFs come out identical.
+  "latex-workshop.latex.outDir": "%DIR%",
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+    },
+    { "name": "bibtex", "command": "bibtex", "args": ["%DOCFILE%"] }
+  ],
+  "latex-workshop.latex.recipes": [
+    { "name": "Full build", "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"] }
+  ],
+  // Intermediate files are cleaned; the PDFs and .aux stay (the response letter
+  // reads the manuscript's .aux for its line references).
+  "latex-workshop.latex.clean.fileTypes": [
+    "*.bbl", "*.blg", "*.idx", "*.ind", "*.lof", "*.lot", "*.out", "*.toc",
+    "*.fls", "*.log", "*.fdb_latexmk", "*.snm", "*.nav", "*.run.xml", "*.bcf",
+    "*.synctex.gz", "*.loc", "*.soc"
+  ]
+}

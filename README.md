@@ -7,52 +7,12 @@ You write the manuscript and mark your changes. Two commands do the rest: they
 produce the clean manuscript, the marked-up manuscript for the editor, the response
 letter with its line numbers correct, the graphical abstract and the source archive.
 
-**You do not need to know Python, and you never need to open the scripts.** If you
-can build a LaTeX file in your editor, you can use this.
-
 Everything here is placeholder text — replace it with your own. `revision_1/` is a
 worked example of a revision round: it ships a manuscript carrying one of each kind
 of tracked change and a response letter wired to them, so you can see the mechanism
 before you need it. Overwrite its contents when your first reviews arrive.
 
-## Setup, once
-
-**1. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows. If
-`pdflatex` already works in your editor, you have this.
-
-**2. uv**, which is what runs the two helper scripts. One line in a Terminal:
-
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-It keeps to itself, and fetches the Python version it needs the first time you run
-a script. You will not have to think about it again.
-
-That is all — nothing to configure, no packages to install.
-
-## The two commands
-
-Type these in a Terminal **opened in this folder**:
-
-- In VS Code, *Terminal → New Terminal* opens in the right place already.
-- From Finder, right-click the folder → *Services → New Terminal at Folder*.
-
-Then copy and paste:
-
-```
-uv run scripts/make_submission.py     # build the files to upload
-uv run scripts/new_revision.py        # start the next round of review
-```
-
-Both figure out where you are in the paper on their own. If a command prints
-something you did not expect, nothing is broken: they only ever write into a
-`submission/` folder or create the next stage, and both are safe to run again.
-
-Writing and previewing the PDF needs no Terminal at all if your editor builds
-LaTeX for you — see [Builds](#builds).
-
-## At a glance
+## The idea
 
 ```
 manuscript/   ──►   revision_1/   ──►   revision_2/   ──►  …
@@ -99,6 +59,58 @@ uv run scripts/new_revision.py        # opens revision_2/, and so on
 `new_revision.py` always opens the stage that follows the newest one, and
 `make_submission.py` always builds the package for the newest one, so neither
 needs to be told where you are.
+
+## Setup, once
+
+**1. VS Code**, recommended — this template ships its settings, so builds work out
+of the box and tracked changes are coloured in the editor as you type. Open the
+folder and VS Code offers to install these; accepting is enough.
+
+| Extension | | What it does for you |
+|---|---|---|
+| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page. Without it you have no build button |
+| [Highlight](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) | recommended | paints `\added` blue and `\deleted` struck-through grey *in the editor*, matching the annotated PDF. Rules ship in `.vscode/settings.json` |
+| [LTeX](https://marketplace.visualstudio.com/items?itemName=valentjn.vscode-ltex) | optional | grammar and spell checking that understands LaTeX instead of tripping over it |
+| [ZoTeX](https://marketplace.visualstudio.com/items?itemName=raykr.zotex) or [Zotero](https://marketplace.visualstudio.com/items?itemName=mblode.zotero) | optional | insert `\cite{…}` keys straight from your library |
+
+The build recipe is already configured in `.vscode/settings.json`, and it is the
+same one the submission generator uses, so the PDF you preview and the PDF you
+submit are built identically. Any other editor works too — you just set the recipe
+up yourself (see [Builds](#builds)).
+
+**2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows. If
+`pdflatex` already works in your editor, you have this.
+
+**3. uv**, which is what runs the two helper scripts. One line in a Terminal:
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+It keeps to itself, and fetches the Python version it needs the first time you run
+a script. You will not have to think about it again.
+
+That is all — nothing to configure, no packages to install.
+
+## The two commands
+
+Type these in a Terminal **opened in this folder**:
+
+- In VS Code, *Terminal → New Terminal* opens in the right place already.
+- From Finder, right-click the folder → *Services → New Terminal at Folder*.
+
+Then copy and paste:
+
+```
+uv run scripts/make_submission.py     # build the files to upload
+uv run scripts/new_revision.py        # start the next round of review
+```
+
+Both work out where you are in the paper on their own, and both are safe to run
+again — they only ever write into a `submission/` folder or create the next stage.
+
+Writing and previewing the PDF needs no Terminal at all if your editor builds
+LaTeX for you — see [Builds](#builds).
 
 ## The stages
 
@@ -253,19 +265,9 @@ pdflatex … ; pdflatex …
 Run it **from inside the folder** — `bibtex` resolves `../references` relative to
 the working directory, so building from the repository root fails.
 
-For VS Code's LaTeX Workshop:
-
-```jsonc
-"latex-workshop.latex.outDir": "%DIR%",
-"latex-workshop.latex.tools": [
-  { "name": "pdflatex", "command": "pdflatex",
-    "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"] },
-  { "name": "bibtex", "command": "bibtex", "args": ["%DOCFILE%"] }
-],
-"latex-workshop.latex.recipes": [
-  { "name": "Full build", "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"] }
-]
-```
+In VS Code this is already set up: `.vscode/settings.json` defines the recipe, so
+the build button does the right thing. Other editors need the four steps configured
+by hand.
 
 Rendered PDFs are tracked, so each stage's output is in the history beside its
 source. Intermediate artifacts (`.aux`, `.log`, `.synctex.gz`, …) are gitignored.

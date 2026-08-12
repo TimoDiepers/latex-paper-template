@@ -1,0 +1,13 @@
+{
+  // VS Code offers to install these when the folder is opened.
+  "recommendations": [
+    // Required: builds and previews the PDF.
+    "james-yu.latex-workshop",
+    // Colours the changes-package markup in the source (rules in settings.json).
+    "fabiospampinato.vscode-highlight",
+    // Grammar and spell checking that understands LaTeX.
+    "valentjn.vscode-ltex",
+    // Insert \cite keys from a Zotero library.
+    "raykr.zotex"
+  ]
+}
