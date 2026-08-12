@@ -5,20 +5,21 @@ asks for, and keeps every submitted version intact.
 
 ## What it does
 
-**You write**, per submission:
+**While you write**, it stays out of the way. A normal manuscript: `manuscript.tex`,
+`figs/` beside it, one `references.bib` shared by the whole paper. No markup, nothing
+special to learn. One command turns that into the initial submission — the manuscript
+PDF, the graphical abstract on its own, and a source archive with the cited
+references inlined in the `.tex` source file.
 
-- `manuscript_annotated.tex` — one manuscript, with your changes marked using
-  `\added{…}`, `\replaced{…}{…}` and `\deleted{…}`
-- `response_to_reviewers.tex` — the letter, pointing at the manuscript by label
-- `figs/` beside it, and one `references.bib` shared by the whole paper
-
-**One command generates** everything the journal wants:
+**When the reviews come back, it earns its place.** You mark the changes in the
+manuscript itself with `\added{…}`, `\replaced{…}{…}` and `\deleted{…}`, and write
+`response_to_reviewers.tex` pointing at them by label. The same command then hands
+you everything that round needs:
 
 - `manuscript_clean.pdf` — the manuscript, changes accepted
 - `manuscript_annotated.pdf` — the same text, changes visible for the editor
 - `response_to_reviewers.pdf` — the letter, its line numbers matching those PDFs
-- `graphical_abstract.pdf` — on its own, for the slot journals reserve for it
-- `latex_source_submission.zip` — the source and figures, cited references inlined
+- `graphical_abstract.pdf` and `latex_source_submission.zip` — as before
 
 You never keep a clean copy of the text in step with the marked-up one, and the
 letter's `(line 42)` always points at the manuscript in the same package rather than
