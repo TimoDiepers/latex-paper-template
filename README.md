@@ -1,32 +1,32 @@
 # LaTeX paper template
 
-One command turns the manuscript you write into the exact set of files a journal
-asks for, and keeps every submitted version intact.
+A repository structure for scientific manuscripts, covering writing, submission and
+the revision rounds that follow. The files a journal asks for are generated from the
+manuscript you write, and each submitted version is kept unchanged.
 
 ## What it does
 
-**While you write**, it stays out of the way. A normal manuscript: `manuscript.tex`,
-`figs/` beside it, one `references.bib` shared by the whole paper. No markup, nothing
-special to learn. One command turns that into the initial submission — the manuscript
-PDF, the graphical abstract on its own, and a source archive with the cited
-references inlined in the `.tex` source file.
+While the paper is being written, the layout is an ordinary LaTeX manuscript:
+`manuscript.tex`, `figs/` beside it, and one `references.bib` shared by the whole
+paper. No markup is needed at this stage. One command produces the initial
+submission — the manuscript PDF, the graphical abstract as a separate file, and a
+source archive with the cited references inlined.
 
-**When the reviews come back, it earns its place.** You mark the changes in the
-manuscript itself with `\added{…}`, `\replaced{…}{…}` and `\deleted{…}`, and write
-`response_to_reviewers.tex` pointing at them by label. The same command then hands
-you everything that round needs:
+For a revision, changes are marked in the manuscript itself with `\added{…}`,
+`\replaced{…}{…}` and `\deleted{…}`, and `response_to_reviewers.tex` refers to them
+by label. The same command then produces:
 
 - `manuscript_clean.pdf` — the manuscript, changes accepted
 - `manuscript_annotated.pdf` — the same text, changes visible for the editor
 - `response_to_reviewers.pdf` — the letter, its line numbers matching those PDFs
 - `graphical_abstract.pdf` and `latex_source_submission.zip` — as before
 
-You never keep a clean copy of the text in step with the marked-up one, and the
-letter's `(line 42)` always points at the manuscript in the same package rather than
-a stale local build. Two more things happen on the way out: internal notes — target
-journal, suggested reviewers, table of contents, your `%` comments — are stripped
-from everything that ships, and only the references you actually cite are inlined, so
-`references.bib` can stay a Zotero or Citavi export without ever being sent.
+No clean copy of the text has to be kept in step with the marked-up one, and the
+letter's `(line 42)` refers to the manuscript in the same package rather than to a
+local build that may have moved on. Internal notes — target journal, suggested
+reviewers, table of contents, `%` comments — are removed from everything that ships,
+and only cited references are inlined, so `references.bib` can remain a Zotero or
+Citavi export and is never sent.
 
 ## Stages
 
@@ -65,21 +65,20 @@ needs to be told where you are.
 
 ## Setup, once
 
-**1. VS Code**, recommended — this template ships its settings, so builds work out
-of the box and tracked changes are coloured in the editor as you type. Open the
-folder and VS Code offers to install these; accepting is enough.
+**1. VS Code**, recommended. Its settings are included here, so the build recipe is
+already configured and the tracked changes are coloured in the editor. On opening the
+folder, VS Code offers to install the extensions below.
 
-| Extension | | What it does for you |
+| Extension | | What it does |
 |---|---|---|
-| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page. Without it you have no build button |
-| [Highlight](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) | recommended | paints `\added` blue and `\deleted` struck-through grey *in the editor*, matching the annotated PDF. Rules ship in `.vscode/settings.json` |
-| [LTeX](https://marketplace.visualstudio.com/items?itemName=valentjn.vscode-ltex) | optional | grammar and spell checking that understands LaTeX instead of tripping over it |
-| [ZoTeX](https://marketplace.visualstudio.com/items?itemName=raykr.zotex) or [Zotero](https://marketplace.visualstudio.com/items?itemName=mblode.zotero) | optional | insert `\cite{…}` keys straight from your library |
+| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page |
+| [Highlight](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) | recommended | colours `\added` blue and `\deleted` struck-through grey in the editor, matching the annotated PDF; rules are in `.vscode/settings.json` |
+| [LTeX](https://marketplace.visualstudio.com/items?itemName=valentjn.vscode-ltex) | optional | grammar and spell checking that parses LaTeX rather than flagging its markup |
+| [ZoTeX](https://marketplace.visualstudio.com/items?itemName=raykr.zotex) or [Zotero](https://marketplace.visualstudio.com/items?itemName=mblode.zotero) | optional | inserts `\cite{…}` keys from a Zotero library |
 
-The build recipe is already configured in `.vscode/settings.json`, and it is the
-same one the submission generator uses, so the PDF you preview and the PDF you
-submit are built identically. Any other editor works too — you just set the recipe
-up yourself (see [Builds](#builds)).
+The recipe in `.vscode/settings.json` is the one the submission generator also uses,
+so a previewed PDF and a submitted PDF are built identically. Other editors work as
+well, with the recipe configured manually (see [Builds](#builds)).
 
 **2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows, TeX
 Live on Linux. If `pdflatex` already works in your editor, you have this.
@@ -89,17 +88,14 @@ for your system in the [uv installation guide](https://docs.astral.sh/uv/getting
 (macOS and Linux use a `curl` command, Windows a PowerShell one, and it is also in
 Homebrew, winget and pip).
 
-It keeps to itself, and fetches the Python version it needs the first time you run a
-script. You will not have to think about it again.
-
-That is all — nothing to configure, no packages to install.
+It installs into your user account and fetches the Python version it needs on first
+use. Nothing else has to be installed or configured.
 
 ## The two commands
 
 Type these in a Terminal **opened in this folder**:
 
-- In VS Code, *Terminal → New Terminal* opens in the right place already — the
-  simplest route on any system.
+- In VS Code, *Terminal → New Terminal* opens in the right place already.
 - On macOS from Finder: right-click the folder → *Services → New Terminal at Folder*.
 - On Windows from Explorer: right-click inside the folder → *Open in Terminal*.
 
@@ -110,8 +106,8 @@ uv run scripts/make_submission.py     # build the files to upload
 uv run scripts/new_revision.py        # start the next round of review
 ```
 
-Both work out where you are in the paper on their own, and both are safe to run
-again — they only ever write into a `submission/` folder or create the next stage.
+Both determine the current stage themselves, and both can be run again: they only
+write into a `submission/` folder or create the next stage.
 
 Writing and previewing the PDF needs no Terminal at all if your editor builds
 LaTeX for you — see [Builds](#builds).
