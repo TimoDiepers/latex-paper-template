@@ -5,20 +5,17 @@ asks for, and keeps every submitted version intact.
 
 ## What it does
 
-```
-you write                        →  make_submission.py gives you
-────────────────────────────        ──────────────────────────────────────────────────
-manuscript_annotated.tex            manuscript_clean.pdf          changes accepted
-  \added{…} \deleted{…}             manuscript_annotated.pdf      changes visible
-response_to_reviewers.tex           response_to_reviewers.pdf     line numbers correct
-figs/                               graphical_abstract.pdf        separate upload slot
-references.bib                      latex_source_submission.zip   source, cited refs inlined
-```
+| You write | We generate |
+|---|---|
+| `manuscript_annotated.tex`<br>with `\added{…}`, `\replaced{…}{…}`, `\deleted{…}` | `manuscript_clean.pdf` — changes accepted<br>`manuscript_annotated.pdf` — changes visible |
+| `response_to_reviewers.tex` | `response_to_reviewers.pdf` — line numbers matching the above |
+| `figs/` | `graphical_abstract.pdf` — for the separate upload slot |
+| `references.bib` | `latex_source_submission.zip` — source files with inline refs |
 
 So you never do the fiddly parts by hand:
 
-- **no second copy of the text.** You mark changes with `\added`, `\replaced` and
-  `\deleted`; the clean version is generated, not maintained.
+- **no second copy of the text.** You mark up one manuscript; the clean version is
+  generated, never maintained alongside it.
 - **line numbers that agree.** The response letter's `(line 42)` points at the
   manuscript in the same package, not at a stale local build.
 - **internal notes stay internal.** Target journal, suggested reviewers, table of
