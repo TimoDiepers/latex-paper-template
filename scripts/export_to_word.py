@@ -377,13 +377,19 @@ def copy_figures(text: str, stage: Path, work: Path) -> None:
         shutil.copy2(fig, work / rel)
 
 
-def pandoc(tex: Path, out_name: str, *, toc: bool) -> Path:
-    command = [
-        "pandoc", tex.name, "-o", out_name, "--number-sections", f"--resource-path={tex.parent}"
-    ]
-    if toc:
-        command.append("--toc")
-    subprocess.run(command, cwd=tex.parent, check=True)
+def pandoc(tex: Path, out_name: str) -> Path:
+    """Convert to .docx.
+
+    No table of contents. Pandoc writes one as a Word field, which makes Word ask
+    whether to update fields that may refer to other files every time the document is
+    opened. Nothing here refers to another file, and a reviewer should not have to answer
+    that question, so the field is left out.
+    """
+    subprocess.run(
+        ["pandoc", tex.name, "-o", out_name, "--number-sections", f"--resource-path={tex.parent}"],
+        cwd=tex.parent,
+        check=True,
+    )
     return tex.parent / out_name
 
 
@@ -463,7 +469,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         text, figures = convert_figures(text, work)
         tex.write_text(text)
         target = stage / (source.stem + SUFFIX)
-        shutil.copy2(pandoc(tex, "manuscript.docx", toc=True), target)
+        shutil.copy2(pandoc(tex, "manuscript.docx"), target)
         written.append(target)
         print(
             f"  {source.name}: {refs} references, {len(cites)} bibliography entries, "
@@ -481,7 +487,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         copy_figures(text, stage, work)
         text, figures = convert_figures(text, work)
         letter.write_text(text)
-        built = pandoc(letter, "letter.docx", toc=False)
+        built = pandoc(letter, "letter.docx")
         coloured = colour_revised_text(built)
         target = stage / (letter_source.stem + SUFFIX)
         shutil.copy2(built, target)
