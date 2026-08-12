@@ -1,15 +1,56 @@
 # LaTeX paper template
 
-Write a paper, submit it, and work through however many rounds of review it takes,
-without hand-maintaining the pile of files each journal asks for. You write prose
-and mark your changes; the tooling produces the clean manuscript, the marked-up
-manuscript, the response letter with correct line references, the graphical
-abstract and the source archive.
+Write a paper in LaTeX, submit it, and work through however many rounds of review
+it takes — without hand-assembling the pile of files each journal asks for.
+
+You write the manuscript and mark your changes. Two commands do the rest: they
+produce the clean manuscript, the marked-up manuscript for the editor, the response
+letter with its line numbers correct, the graphical abstract and the source archive.
+
+**You do not need to know Python, and you never need to open the scripts.** If you
+can build a LaTeX file in your editor, you can use this.
 
 Everything here is placeholder text — replace it with your own. `revision_1/` is a
 worked example of a revision round: it ships a manuscript carrying one of each kind
 of tracked change and a response letter wired to them, so you can see the mechanism
 before you need it. Overwrite its contents when your first reviews arrive.
+
+## Setup, once
+
+**1. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows. If
+`pdflatex` already works in your editor, you have this.
+
+**2. uv**, which is what runs the two helper scripts. One line in a Terminal:
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+It keeps to itself, and fetches the Python version it needs the first time you run
+a script. You will not have to think about it again.
+
+That is all — nothing to configure, no packages to install.
+
+## The two commands
+
+Type these in a Terminal **opened in this folder**:
+
+- In VS Code, *Terminal → New Terminal* opens in the right place already.
+- From Finder, right-click the folder → *Services → New Terminal at Folder*.
+
+Then copy and paste:
+
+```
+uv run scripts/make_submission.py     # build the files to upload
+uv run scripts/new_revision.py        # start the next round of review
+```
+
+Both figure out where you are in the paper on their own. If a command prints
+something you did not expect, nothing is broken: they only ever write into a
+`submission/` folder or create the next stage, and both are safe to run again.
+
+Writing and previewing the PDF needs no Terminal at all if your editor builds
+LaTeX for you — see [Builds](#builds).
 
 ## At a glance
 
@@ -40,14 +81,19 @@ revision — so there is a single command to remember rather than a different
 procedure per round. The folders sort chronologically in any file browser, so the
 paper's history reads top to bottom.
 
-The whole lifecycle in commands:
+The whole lifecycle:
 
 ```
-cd manuscript && pdflatex … manuscript.tex   # 1. write and preview
-uv run scripts/make_submission.py            #    upload manuscript/submission/
-uv run scripts/new_revision.py               # 2. reviews arrived -> revision_1/
-uv run scripts/make_submission.py            #    upload revision_1/submission/
-uv run scripts/new_revision.py               #    next round -> revision_2/
+# 1. write in manuscript/, previewing the PDF in your editor
+uv run scripts/make_submission.py     # then upload manuscript/submission/
+
+# 2. reviews arrive
+uv run scripts/new_revision.py        # opens revision_1/
+#    mark up the manuscript, write the letter
+uv run scripts/make_submission.py     # then upload revision_1/submission/
+
+# 3. more reviews
+uv run scripts/new_revision.py        # opens revision_2/, and so on
 ```
 
 `new_revision.py` always opens the stage that follows the newest one, and
@@ -76,21 +122,24 @@ This is where the paper gets written, and where you will spend most of your time
 Edit `manuscript/manuscript.tex`, drop figures in `manuscript/figs/`, add
 references to `references.bib` at the repository root.
 
-```
-cd manuscript
-pdflatex -synctex=1 -interaction=nonstopmode -file-line-error manuscript.tex
-bibtex manuscript
-pdflatex … ; pdflatex …          # twice more, to settle refs
-```
+Preview it however you normally build LaTeX — in VS Code, the build button on
+`manuscript/manuscript.tex` is enough, as long as your recipe is set up as under
+[Builds](#builds). Iterate as long as you like: send the PDF round, collect
+comments, rewrite. Lines are numbered from the abstract onwards, every fifth one, so
+coauthors can point at them.
 
-Iterate as long as you like: send the PDF round, collect comments, rewrite. Lines
-are numbered from the abstract onwards, every fifth one, so coauthors can point at
-them.
+**References.** `references.bib` at the top of the folder is shared by every stage,
+cited as `\bibliography{../references}`, so there is one bibliography for the whole
+paper rather than a copy per stage. Point Zotero or Citavi at it as an export target
+and let them keep it in sync; you never edit it by hand. When you build the
+submission package, only the entries you actually cite are copied into the shipped
+`.tex` — the rest of your library stays behind, and no `.bib` file is sent at all.
 
-Keep whatever helps that internal circulation in the source — this template ships
-a target journal, a list of suggested reviewers and a table of contents, and
-`\hl{…}` highlights anything still open. **None of it can reach a journal**: the
-generator strips all of it. So there is nothing to clean up before submitting.
+**Notes to yourselves stay in the source.** This template ships a target journal, a
+list of suggested reviewers and a table of contents, and `\hl{…}` highlights
+anything still open. Keep whatever helps while the paper circulates internally:
+**none of it can reach a journal**, because the generator strips all of it. There is
+nothing to clean up before submitting.
 
 When the manuscript is ready:
 
@@ -233,7 +282,9 @@ source. Intermediate artifacts (`.aux`, `.log`, `.synctex.gz`, …) are gitignor
   `Target Journal` and `Reviewer Suggestions` sections;
 - keeps the graphical abstract in the document and exports it separately for the
   upload slot journals reserve for it;
-- inlines the bibliography, so the shipped `.tex` needs no `.bib`;
+- runs `bibtex` and splices the result into the shipped `.tex` as a
+  `thebibliography` block, so it carries **only the entries actually cited** and
+  needs no `.bib` alongside it — your whole library stays behind;
 - rebuilds the response letter in place, so its line references match the shipped
   manuscript;
 - strips your comments, leaving one line of provenance — notes to yourself never
@@ -265,9 +316,10 @@ references.bib              one bibliography, shared by every stage
 scripts/                    make_submission.py, new_revision.py
 ```
 
-`references.bib` is shared, cited as `../references`. An old stage's *working*
-build can therefore pick up later reference edits — but everything already sent
-has its bibliography inlined inside `submission/`, so the record never moves.
+`references.bib` is shared, cited as `../references`, and can be regenerated from
+a reference manager at will. An old stage's *working* build therefore picks up
+later reference edits — but everything already sent has its cited entries inlined
+inside `submission/`, so the record of what was submitted never moves.
 
 The manuscript is called `manuscript_annotated.tex` from the first revision
 onwards, because that is what it is. Before that it is just `manuscript.tex`.
