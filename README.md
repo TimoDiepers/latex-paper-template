@@ -188,10 +188,12 @@ pandoc writes neither. Figures are embedded as PNG, because Word
 cannot display the PDF figures the manuscript uses. The internal front matter is kept,
 since this is not a document a journal sees.
 
-The letter keeps its structure without its colours, which do not survive the trip. Each
-comment becomes a heading followed by the comment in italics, your answer stays plain,
-and quoted manuscript text becomes an indented block. Its line references show the
-numbers from the line-numbered PDF, because a Word file has no line numbers of its own.
+The letter keeps its shape and its colour. Each comment becomes a heading followed by
+the comment in italics, your answer stays an indented block, and quoted manuscript text
+is indented and blue. Pandoc drops colour when it reads LaTeX, so the blue is written
+into the .docx afterwards. Line references show the numbers from the annotated
+manuscript that ships, because a Word file has no line numbers of its own, and an
+undefined label shows as `(line ??)` rather than a wrong number.
 
 Two things do not carry over. Equations become Word equations and lose their own
 numbering, though references to them in the text stay correct. Tracked changes are

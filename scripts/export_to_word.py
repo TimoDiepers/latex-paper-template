@@ -41,6 +41,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -50,6 +51,12 @@ REPO = ps.REPO
 LETTER = "response_to_reviewers.tex"
 SUFFIX = "_for_review.docx"
 FIGURE_DPI = 200
+
+# Pandoc drops colour when reading LaTeX, so the letter's blue is put back afterwards.
+# Revised text is tagged with a marker that survives the conversion as ordinary text,
+# then the marker is removed and its paragraph coloured in the .docx itself.
+REVISED_MARKER = "@@REVISEDTEXT@@"
+REVISED_COLOUR = "0000BF"
 
 # Pandoc reads \newcommand, but not the packages that define these.
 MATH_MACROS = r"""
@@ -235,13 +242,13 @@ def drop_definition(text: str, kind: str, name: str, groups: int) -> str:
 def line_labels(src_text: str, work: Path) -> dict[str, str]:
     """Build the manuscript with its line numbers on, to learn what \\linelabel resolves to.
 
-    The Word manuscript has no line numbers, so the letter's references point at the
-    numbers in the PDF. Those only exist in a build that keeps lineno and \\linelabel,
-    which the export otherwise removes.
+    A Word file has no line numbers, so the letter's references have to point at the
+    annotated manuscript that reviewers read. That means building exactly what
+    prepare_submission.py ships, tracked changes visible and internal front matter gone.
+    Numbering the accepted text instead would put ln:gap at line 28 where the reviewer
+    sees 13.
     """
-    keep_linelabel = {k: v for k, v in ps.FLATTEN_CLEAN.items() if k != "linelabel"}
-    text = ps.strip_comments(ps.flatten(src_text, keep_linelabel))
-    text = ps.ensure_line_numbers(text)
+    text = ps.transform(src_text, "manuscript", annotated=True)
     text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: r"\bibliography{references}", text)
     numbered = work / "numbered.tex"
     numbered.write_text(text)
@@ -294,9 +301,12 @@ def prepare_letter(src_text: str, labels: dict[str, str]) -> tuple[str, list[str
     )
     text = replace_macro(text, "todoitem", 1, lambda body: f"\n\\textbf{{[TO BE DONE]}} {body}\n")
 
-    for env in ("response", "revisedtext"):
-        text = text.replace(rf"\begin{{{env}}}", r"\begin{quote}")
-        text = text.replace(rf"\end{{{env}}}", r"\end{quote}")
+    text = text.replace(r"\begin{response}", r"\begin{quote}")
+    text = text.replace(r"\end{response}", r"\end{quote}")
+    text = text.replace(r"\begin{revisedtext}", "\\begin{quote}" + REVISED_MARKER + " ")
+    text = text.replace(r"\end{revisedtext}", r"\end{quote}")
+    # The style key at the top describes the blue, so it should be blue as well.
+    text = replace_macro(text, "textcolor", 2, lambda _colour, body: REVISED_MARKER + " " + body)
     return text, missing
 
 
@@ -377,6 +387,44 @@ def pandoc(tex: Path, out_name: str, *, toc: bool) -> Path:
     return tex.parent / out_name
 
 
+def colour_revised_text(docx: Path) -> int:
+    """Colour every paragraph that carries the marker, then take the marker out."""
+    with zipfile.ZipFile(docx) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    xml = parts["word/document.xml"].decode()
+    if REVISED_MARKER not in xml:
+        return 0
+
+    coloured = 0
+
+    def paint(run: re.Match) -> str:
+        run_xml = run.group(0)
+        colour = f'<w:color w:val="{REVISED_COLOUR}" />'
+        if "<w:rPr>" in run_xml:
+            return run_xml.replace("<w:rPr>", "<w:rPr>" + colour, 1)
+        return run_xml.replace("<w:r>", "<w:r><w:rPr>" + colour + "</w:rPr>", 1)
+
+    def paragraph(match: re.Match) -> str:
+        nonlocal coloured
+        block = match.group(0)
+        if REVISED_MARKER not in block:
+            return block
+        coloured += 1
+        block = block.replace(REVISED_MARKER, "")
+        # The marker left an empty run behind, and pandoc put the space that followed it
+        # in a run of its own. Both sit at the start of the paragraph.
+        empty_run = r"<w:r>(?:(?!</w:r>).)*?<w:t[^>]*>\s*</w:t></w:r>"
+        block = re.sub(rf"(</w:pPr>|<w:p>)(?:{empty_run})+", r"\1", block, flags=re.S)
+        return re.sub(r"<w:r>.*?</w:r>", paint, block, flags=re.S)
+
+    xml = re.sub(r"<w:p>.*?</w:p>", paragraph, xml, flags=re.S)
+    parts["word/document.xml"] = xml.encode()
+    with zipfile.ZipFile(docx, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, data in parts.items():
+            archive.writestr(name, data)
+    return coloured
+
+
 def report_missing(keys: list[str]) -> None:
     if keys:
         print(f"    unresolved: {', '.join(sorted(set(keys)))}", file=sys.stderr)
@@ -433,10 +481,12 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         copy_figures(text, stage, work)
         text, figures = convert_figures(text, work)
         letter.write_text(text)
+        built = pandoc(letter, "letter.docx", toc=False)
+        coloured = colour_revised_text(built)
         target = stage / (letter_source.stem + SUFFIX)
-        shutil.copy2(pandoc(letter, "letter.docx", toc=False), target)
+        shutil.copy2(built, target)
         written.append(target)
-        print(f"  {LETTER}: {refs} references, {figures} figures")
+        print(f"  {LETTER}: {refs} references, {coloured} passages coloured")
         report_missing(missing + ref_missing + uncited)
 
     return written
