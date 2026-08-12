@@ -1,0 +1,155 @@
+% 12pt and authblk mirror manuscript_annotated.tex, so the title block below
+% typesets at exactly the same sizes as the manuscript's.
+\documentclass[12pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{authblk}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xr}
+\externaldocument{manuscript_annotated}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue]{hyperref}
+
+% Line references into the annotated manuscript.
+% Mechanism: \linelabel{ln:xyz} in manuscript_annotated.tex (lineno package) -> \lnp{ln:xyz} here.
+% Requires manuscript_annotated.aux, pulled in via xr/\externaldocument above.
+% If manuscript_annotated.aux is missing or stale, \ref silently degrades to "??".
+% Flag that loudly instead, so a broken reference cannot slip into a version
+% that goes out to the reviewers.
+\makeatletter
+\newcommand{\lnum}[1]{%
+  \@ifundefined{r@#1}%
+    {\textcolor{red}{\textbf{[line ??\ -- rebuild manuscript\_annotated.tex]}}}%
+    {line~\ref{#1}}}
+\makeatother
+\newcommand{\lnp}[1]{(\lnum{#1})}
+
+\definecolor{revised}{rgb}{0,0,0.75}
+\definecolor{todocol}{rgb}{0.75,0.25,0}
+
+% Math symbol macros, mirroring manuscript_annotated.tex
+\newcommand{\vectorsym}[1]{\boldsymbol{#1}}
+\newcommand{\matrixsym}[1]{\boldsymbol{#1}}
+
+% Marker for comments that are not yet addressed in the manuscript.
+\newcommand{\todoitem}[1]{\par\vspace{0.3em}\noindent\textcolor{todocol}{\textbf{[TO BE DONE]} #1}\par}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\newcommand{\comm}[2]{%
+  \vspace{1.2em}%
+  \noindent\textbf{Comment #1}\par\vspace{0.2em}%
+  \textit{#2}\par}
+
+\newenvironment{response}%
+  {\begin{list}{}{\setlength{\leftmargin}{1.5em}\setlength{\rightmargin}{0em}}\item[]}%
+  {\end{list}}
+
+\newenvironment{revisedtext}%
+  {\begin{list}{}{\setlength{\leftmargin}{1.5em}\setlength{\rightmargin}{0em}}\item[]\color{revised}}%
+  {\end{list}}
+
+% Title block styled as in manuscript_annotated.tex: \bfseries title, authblk
+% authors with superscript affiliation markers, affiliations in small italics.
+\title{ \bfseries Response to Reviewers\\[0.4em]
+\large Manuscript: ``Working Title of the Paper''}
+\author[a]{First Author}
+\author[b]{Second Author}
+\author[a]{Third Author}
+
+\renewcommand\Affilfont{\small\itshape}
+\affil[a]{First Institute, First University, Country}
+\affil[b]{Second Institute, Second University, Country}
+
+\date{}
+
+\begin{document}
+
+% The VS Code recipe runs bibtex unconditionally. This document has no
+% bibliography, so bibtex would abort on a missing \bibdata/\bibstyle/\citation
+% and take the whole build down with it. Writing the three commands into the
+% .aux directly keeps bibtex happy. The resulting .bbl is never read, so no
+% reference list is typeset.
+\makeatletter
+\immediate\write\@auxout{\string\citation{firstReference2024}}
+\immediate\write\@auxout{\string\bibstyle{plain}}
+\immediate\write\@auxout{\string\bibdata{../references}}
+\makeatother
+
+\maketitle
+
+% Conventions used in this document:
+%   \comm{n}{quoted reviewer comment}         -> the comment, in italics
+%   \begin{response} ... \end{response}       -> our answer
+%   \begin{revisedtext} ... \end{revisedtext} -> the revised manuscript text, in blue
+%   \lnp{ln:label}                            -> (line 123) into the annotated manuscript
+%   \todoitem{...}                            -> INTERNAL marker, remove before submission
+
+% Each entry is set in the style it describes. Kept as a plain list rather than
+% the \comm / response / revisedtext macros, which would drag their own headers
+% and vertical spacing into the key.
+This response to the review comments adheres to the following style code:
+
+\begin{itemize}[leftmargin=1.5em, topsep=0.4em, itemsep=0.2em, parsep=0pt]
+  \item \textit{Reviewer comments are quoted verbatim, in italics.}
+  \item Our answers follow in upright text.
+  \item \textcolor{revised}{Revised manuscript text is quoted in blue.}
+\end{itemize}
+
+Line numbers refer to the annotated version of the revised manuscript.
+\pagebreak
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Response to Editor}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\comm{E.1}{Quote the editor's request here.}
+
+\begin{response}
+Answer it, and say where in the manuscript the change landed \lnp{ln:abstract}.
+\end{response}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Reviewer 1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\comm{1.1}{Quote the first comment verbatim, so the reviewer can recognise it.}
+
+\begin{response}
+Answer the comment directly. If the manuscript changed, point at the line and
+quote the new text.
+\end{response}
+
+\begin{revisedtext}
+The revised sentence, copied from the manuscript \lnp{ln:gap}.
+\end{revisedtext}
+
+\comm{1.2}{Quote the second comment.}
+
+\begin{response}
+Where a comment is declined, say so plainly and give the reason rather than
+deferring it.
+\end{response}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Reviewer 2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\comm{2.1}{Quote the comment.}
+
+\begin{response}
+Answer it \lnp{ln:methods}.
+\end{response}
+
+\comm{2.2}{Quote the comment.}
+
+\begin{response}
+Answer it \lnp{ln:results}.
+\end{response}
+
+\end{document}
