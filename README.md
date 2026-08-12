@@ -1,45 +1,46 @@
 # LaTeX paper template
 
-Write a paper in LaTeX, submit it, and work through however many rounds of review
-it takes — without hand-assembling the pile of files each journal asks for.
+One command turns the manuscript you write into the exact set of files a journal
+asks for, and keeps every submitted version intact.
 
-You write the manuscript and mark your changes. Two commands do the rest: they
-produce the clean manuscript, the marked-up manuscript for the editor, the response
-letter with its line numbers correct, the graphical abstract and the source archive.
-
-Everything here is placeholder text — replace it with your own. `revision_1/` is a
-worked example of a revision round: it ships a manuscript carrying one of each kind
-of tracked change and a response letter wired to them, so you can see the mechanism
-before you need it. Overwrite its contents when your first reviews arrive.
-
-## The idea
+## What it does
 
 ```
-manuscript/   ──►   revision_1/   ──►   revision_2/   ──►  …
-write + submit      round 1            round 2
+you write                        →  make_submission.py gives you
+────────────────────────────        ──────────────────────────────────────────────────
+manuscript_annotated.tex            manuscript_clean.pdf          changes accepted
+  \added{…} \deleted{…}             manuscript_annotated.pdf      changes visible
+response_to_reviewers.tex           response_to_reviewers.pdf     line numbers correct
+figs/                               graphical_abstract.pdf        separate upload slot
+references.bib                      latex_source_submission.zip   source, cited refs inlined
 ```
 
-1. **Write and submit**: the paper lives in `manuscript/`. When it is ready,
-   generate the package and upload it.
-2. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
-   write the response letter, generate the package, upload it. Repeat per round.
+So you never do the fiddly parts by hand:
 
-**"Generate the package"** means running `uv run scripts/make_submission.py`. It
-writes `<stage>/submission/`, holding exactly the files a journal asks for and
-nothing else:
+- **no second copy of the text.** You mark changes with `\added`, `\replaced` and
+  `\deleted`; the clean version is generated, not maintained.
+- **line numbers that agree.** The response letter's `(line 42)` points at the
+  manuscript in the same package, not at a stale local build.
+- **internal notes stay internal.** Target journal, suggested reviewers, table of
+  contents, your `%` comments — stripped from everything that ships.
+- **one bibliography.** Keep `references.bib` synced from Zotero or Citavi; only the
+  entries you cite are inlined into the submitted `.tex`, and no `.bib` is sent.
 
-| File | What it is |
-|---|---|
-| `manuscript_clean.pdf` | the manuscript itself, with all tracked changes accepted |
-| `manuscript_annotated.pdf` | the same text with the changes visible, for the editor — revisions only |
-| `response_to_reviewers.pdf` | the response letter, its line numbers matching the manuscript in this folder — revisions only |
-| `graphical_abstract.pdf` | the graphical abstract on its own, for the slot journals reserve for it |
-| `latex_source_submission.zip` | the LaTeX source: `manuscript_clean.tex` and `figs/`, no PDFs |
+## Stages
 
-Every stage produces one the same way — the initial submission as much as any
-revision — so there is a single command to remember rather than a different
-procedure per round. The folders sort chronologically in any file browser, so the
-paper's history reads top to bottom.
+One folder per submission — `manuscript/`, then `revision_1/`, `revision_2/`, … Each
+holds its own manuscript, figures and letter, and freezes when you open the next, so
+what you sent stays exactly as sent. 
+
+| Stage | You write | You upload |
+|---|---|---|
+| `manuscript/` | `manuscript.tex` | manuscript, graphical abstract, source zip |
+| `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | the same, plus the annotated manuscript and the response letter |
+
+Revising and resubmitting are one step: mark up the manuscript, answer the
+reviewers, generate that round's package. `revision_1/` ships filled in as a worked
+example — one of each kind of tracked change, wired to the letter — so overwrite it
+when your first reviews arrive.
 
 The whole lifecycle:
 
@@ -78,17 +79,16 @@ same one the submission generator uses, so the PDF you preview and the PDF you
 submit are built identically. Any other editor works too — you just set the recipe
 up yourself (see [Builds](#builds)).
 
-**2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows. If
-`pdflatex` already works in your editor, you have this.
+**2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows, TeX
+Live on Linux. If `pdflatex` already works in your editor, you have this.
 
-**3. uv**, which is what runs the two helper scripts. One line in a Terminal:
+**3. uv**, which is what runs the two helper scripts. Follow the one-line install
+for your system in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+(macOS and Linux use a `curl` command, Windows a PowerShell one, and it is also in
+Homebrew, winget and pip).
 
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-It keeps to itself, and fetches the Python version it needs the first time you run
-a script. You will not have to think about it again.
+It keeps to itself, and fetches the Python version it needs the first time you run a
+script. You will not have to think about it again.
 
 That is all — nothing to configure, no packages to install.
 
@@ -96,8 +96,10 @@ That is all — nothing to configure, no packages to install.
 
 Type these in a Terminal **opened in this folder**:
 
-- In VS Code, *Terminal → New Terminal* opens in the right place already.
-- From Finder, right-click the folder → *Services → New Terminal at Folder*.
+- In VS Code, *Terminal → New Terminal* opens in the right place already — the
+  simplest route on any system.
+- On macOS from Finder: right-click the folder → *Services → New Terminal at Folder*.
+- On Windows from Explorer: right-click inside the folder → *Open in Terminal*.
 
 Then copy and paste:
 
@@ -111,20 +113,6 @@ again — they only ever write into a `submission/` folder or create the next st
 
 Writing and previewing the PDF needs no Terminal at all if your editor builds
 LaTeX for you — see [Builds](#builds).
-
-## The stages
-
-Each folder is self-contained, and the previous one freezes the moment you move
-on, so you can always see exactly what was sent and when.
-
-| Stage | Folder | You write | You get |
-|---|---|---|---|
-| Write and submit | `manuscript/` | `manuscript.tex` | previews for coauthors, then `submission/`: manuscript, graphical abstract, source zip |
-| Revise, once per round | `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
-
-Revising and resubmitting are the same step: you mark up the manuscript, answer
-the reviewers, and generate that round's package. A resubmission is just the
-package a `revision_<N>/` folder produces.
 
 ---
 
