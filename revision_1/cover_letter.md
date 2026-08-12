@@ -1,4 +1,4 @@
-# Cover letter — revision 1
+# Cover letter  revision 1
 
 Draft the letter here, then paste it into the journal's form or into a .docx if
 the journal wants a file.

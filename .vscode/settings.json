@@ -36,6 +36,10 @@
   // scripts/make_submission.py runs exactly this, so the editor and the generated
   // submission PDFs come out identical.
   "latex-workshop.latex.outDir": "%DIR%",
+  // Rebuild when you save, rather than on any file change. The default
+  // (onFileChange) also fires when scripts/make_submission.py writes into the
+  // folder, which starts builds you did not ask for.
+  "latex-workshop.latex.autoBuild.run": "onSave",
   "latex-workshop.latex.tools": [
     {
       "name": "pdflatex",
