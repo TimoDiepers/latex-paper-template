@@ -12,6 +12,25 @@ Two scripts do the work.
   prepared, meaning the manuscript carried over and set up for tracked changes, and a
   response letter and notes ready to fill in.
 
+The whole lifecycle looks like this.
+
+```
+# 1. write the paper in manuscript/, previewing the PDF in your editor
+uv run scripts/prepare_submission.py   # then upload manuscript/submission/
+
+# 2. reviews arrive
+uv run scripts/new_revision.py         # opens revision_1/, ready to edit
+#    mark up the manuscript, write the response letter
+uv run scripts/prepare_submission.py   # then upload revision_1/submission/
+
+# 3. more reviews
+uv run scripts/new_revision.py         # opens revision_2/, and so on
+```
+
+`new_revision.py` always opens the stage that follows the newest one, and
+`prepare_submission.py` always builds the package for the newest one, so neither needs
+to be told where you are.
+
 ## What it does
 
 A small, fixed set of files is maintained by hand. Everything a journal receives is
@@ -62,25 +81,6 @@ Revising and resubmitting are one step. You mark up the manuscript, answer the
 reviewers, and generate that round's package. The repository ships with `manuscript/`
 alone. Every other folder, including each `submission/`, appears when you run one of
 the scripts.
-
-The whole lifecycle looks like this.
-
-```
-# 1. write in manuscript/, previewing the PDF in your editor
-uv run scripts/prepare_submission.py     # then upload manuscript/submission/
-
-# 2. reviews arrive
-uv run scripts/new_revision.py        # opens revision_1/
-#    mark up the manuscript, write the letter
-uv run scripts/prepare_submission.py     # then upload revision_1/submission/
-
-# 3. more reviews
-uv run scripts/new_revision.py        # opens revision_2/, and so on
-```
-
-`new_revision.py` always opens the stage that follows the newest one, and
-`prepare_submission.py` always builds the package for the newest one, so neither needs
-to be told where you are.
 
 ## Setup, once
 
