@@ -1,0 +1,14 @@
+[project]
+name = "manuscript-tools"
+version = "0.1.0"
+description = "Build tooling for a LaTeX manuscript: revision folders and journal submission packages"
+readme = "README.md"
+requires-python = ">=3.9"
+# Both scripts are standard library only. The dependency list is empty on
+# purpose, and uv.lock pins that: the tooling stays reproducible without
+# pulling anything from the network.
+dependencies = []
+
+[tool.uv]
+# A collection of scripts, not an installable package.
+package = false

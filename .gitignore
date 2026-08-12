@@ -1,0 +1,26 @@
+.DS_Store
+.latexmkrc
+__pycache__/
+
+# LaTeX build artifacts. Regenerable from the .tex sources that live in each
+# rev<N>/ folder, and they produce enormous diffs when tracked.
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.loc
+*.log
+*.out
+*.soc
+*.synctex.gz
+*.toc
+
+# Word lock files
+~$*
+
+# PDFs are deliberately tracked, including the in-place working builds, so that
+# every revision's rendered state is in the history alongside its sources.
+
+# uv virtualenv
+.venv/
