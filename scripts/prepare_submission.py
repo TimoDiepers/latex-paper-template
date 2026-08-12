@@ -28,9 +28,9 @@ The annotated variant is only produced when the source actually contains tracked
 changes, so the initial submission yields the clean manuscript alone.
 
 Usage:
-    uv run scripts/make_submission.py              # the newest stage
-    uv run scripts/make_submission.py revision_1   # a specific stage
-    uv run scripts/make_submission.py --no-build   # write the .tex files only
+    uv run scripts/prepare_submission.py              # the newest stage
+    uv run scripts/prepare_submission.py revision_1   # a specific stage
+    uv run scripts/prepare_submission.py --no-build   # write the .tex files only
 
 No third-party dependencies; needs pdflatex and bibtex on PATH.
 """
