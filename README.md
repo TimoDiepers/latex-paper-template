@@ -1,53 +1,58 @@
 # LaTeX paper template
 
-Write a paper, submit it, revise it, resubmit it — without hand-maintaining the
-pile of files each journal asks for. You write prose and mark your changes; the
-tooling produces the clean manuscript, the marked-up manuscript, the response
-letter with correct line references, the graphical abstract and the source
-archive.
+Write a paper, submit it, and work through however many rounds of review it takes
+— without hand-maintaining the pile of files each journal asks for. You write
+prose and mark your changes; the tooling produces the clean manuscript, the
+marked-up manuscript, the response letter with correct line references, the
+graphical abstract and the source archive.
 
 Everything here is placeholder text. Replace it and delete what you do not need.
 
 ## At a glance
 
 ```
-draft/   ──►   rev0/   ──►   rev1/   ──►   rev2/   ──►  …
-write it       submit        revise        resubmit
+draft/   ──►   initial_submission/   ──►   revision_1/   ──►   revision_2/   ──►  …
+write it       submit it                   round 1             round 2
 ```
 
 1. **Write** the paper in `draft/`, iterating with your coauthors.
-2. **Submit**: open `rev0/`, drop the internal-only front matter, generate the
-   package, upload it.
-3. **Revise**: open `rev1/`, mark up the manuscript and write the response letter,
+2. **Submit**: open `initial_submission/`, drop the internal-only front matter,
    generate the package, upload it.
-4. **Resubmit**: open `rev2/`, and repeat step 3 for as many rounds as it takes.
+3. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
+   write the response letter, generate the package, upload it. Repeat per round.
+
+The folders sort chronologically in any file browser, so the paper's history reads
+top to bottom.
 
 The whole lifecycle in commands:
 
 ```
-cd draft && pdflatex … manuscript.tex               # 1. write and preview
-uv run scripts/new_revision.py --from draft --to rev0
-uv run scripts/make_submission.py rev0              # 2. submit rev0/submission/
-uv run scripts/new_revision.py --to rev1            # 3. reviews arrived
-uv run scripts/make_submission.py                   #    upload rev1/submission/
-uv run scripts/new_revision.py                      # 4. next round
+cd draft && pdflatex … manuscript.tex        # 1. write and preview
+uv run scripts/new_revision.py              #    -> initial_submission/
+uv run scripts/make_submission.py           # 2. upload initial_submission/submission/
+uv run scripts/new_revision.py              # 3. reviews arrived -> revision_1/
+uv run scripts/make_submission.py           #    upload revision_1/submission/
+uv run scripts/new_revision.py              #    next round -> revision_2/
 ```
 
-## The four stages
+`new_revision.py` always opens the stage that follows the newest one, and
+`make_submission.py` always builds the package for the newest one, so neither
+needs to be told where you are.
 
-The paper moves through numbered folders. Each one is self-contained, and the
-previous one freezes the moment you move on, so you can always see exactly what
-was sent and when.
+## The stages
+
+Each folder is self-contained, and the previous one freezes the moment you move
+on, so you can always see exactly what was sent and when.
 
 | Stage | Folder | You write | You get |
 |---|---|---|---|
-| 1. Prepare | `draft/` | `manuscript.tex` | a PDF for coauthors and internal review |
-| 2. Submit | `rev0/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
-| 3. Revise | `rev1/` | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
-| 4. Resubmit | `rev2/`, … | same two files | same package, one round later |
+| Prepare | `draft/` | `manuscript.tex` | a PDF for coauthors and internal review |
+| Submit | `initial_submission/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
+| Revise, once per round | `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
 
-Only the newest folder is live. `uv run scripts/make_submission.py` always builds
-the package for it, and `uv run scripts/new_revision.py` always opens the next one.
+Revising and resubmitting are the same step: you mark up the manuscript, answer
+the reviewers, and generate that round's package. A resubmission is just the
+package a `revision_<N>/` folder produces.
 
 ---
 
@@ -73,37 +78,38 @@ review but never want a journal to see — the target journal, the suggested
 reviewers, and a table of contents. Use `\hl{…}` to highlight anything still
 open. All of it disappears from the next stage.
 
-## 2. Submit — `rev0/`
+## 2. Submit — `initial_submission/`
 
 When the manuscript is ready:
 
 ```
-uv run scripts/new_revision.py --from draft --to rev0
+uv run scripts/new_revision.py
 ```
 
-Then delete the internal-only front matter from `rev0/manuscript.tex`: the
-`Target Journal` and `Reviewer Suggestions` sections, and `\tableofcontents`.
-`draft/` keeps its copy, frozen.
+Then delete the internal-only front matter from
+`initial_submission/manuscript.tex`: the `Target Journal` and
+`Reviewer Suggestions` sections, and `\tableofcontents`. `draft/` keeps its copy,
+frozen.
 
 ```
-uv run scripts/make_submission.py rev0
+uv run scripts/make_submission.py
 ```
 
-`rev0/submission/` now holds the manuscript PDF, the graphical abstract as its own
-file, and a zip of the LaTeX source with its figures — five files at most, each
-one an upload. Send those.
+`initial_submission/submission/` now holds the manuscript PDF, the graphical
+abstract as its own file, and a zip of the LaTeX source with its figures — each
+file an upload. Send those.
 
-## 3. Revise — `rev1/`
+## 3. Each round of review — `revision_<N>/`
 
 Reviews arrive. Open the next folder and set it up for tracked changes:
 
 ```
-uv run scripts/new_revision.py --to rev1
+uv run scripts/new_revision.py
 ```
 
-Rename `rev1/manuscript.tex` to `rev1/manuscript_annotated.tex` and load the
-`changes` package — copy the preamble block from the `rev1/manuscript_annotated.tex`
-shipped with this template. From here on, a revision means editing **two files**:
+Rename `manuscript.tex` to `manuscript_annotated.tex` and load the `changes`
+package — copy the preamble block from the `revision_1/manuscript_annotated.tex`
+shipped with this template. From here on, a round means editing **two files**:
 
 **`manuscript_annotated.tex`** — the manuscript, with every change marked:
 
@@ -124,14 +130,14 @@ shipped with this template. From here on, a revision means editing **two files**
 \todoitem{Not addressed yet.}                      % internal marker
 ```
 
-Paste the comments into `rev1/reviewer_comments.md` first if it helps to work
-through them, and draft the cover letter in `rev1/cover_letter.md`.
+Paste the comments into `reviewer_comments.md` first if it helps to work through
+them, and draft the cover letter in `cover_letter.md`.
 
 Preview as you go — manuscript first, then the letter, which reads the
 manuscript's line numbers:
 
 ```
-cd rev1
+cd revision_1
 pdflatex … manuscript_annotated.tex ; bibtex manuscript_annotated ; pdflatex … ; pdflatex …
 pdflatex … response_to_reviewers.tex ; bibtex response_to_reviewers ; pdflatex … ; pdflatex …
 ```
@@ -142,19 +148,20 @@ Then build the package:
 uv run scripts/make_submission.py
 ```
 
-`rev1/submission/` holds the clean manuscript, the marked-up manuscript for the
-editor, the response letter, the graphical abstract, and the source zip. Send
+`revision_1/submission/` holds the clean manuscript, the marked-up manuscript for
+the editor, the response letter, the graphical abstract, and the source zip. Send
 those, not the previews.
 
-## 4. Resubmit — `rev2/` and beyond
+## Later rounds
 
 ```
 uv run scripts/new_revision.py
 ```
 
-Accept the round you just finished in the new `manuscript_annotated.tex` — the
-markup from round one has been answered, so clear it before marking up round
-two — and go back to step 3. `rev1/` freezes with its own submission package.
+This opens `revision_2/`. Accept the round you just finished in its
+`manuscript_annotated.tex` — the markup from round one has been answered, so clear
+it before marking up round two — then work through step 3 again. `revision_1/`
+freezes with its own submission package.
 
 ---
 
@@ -163,7 +170,7 @@ two — and go back to step 3. `rev1/` freezes with its own submission package.
 | | |
 |---|---|
 | **Yours** | the manuscript in the newest folder, `response_to_reviewers.tex`, `figs/`, `references.bib`, the two `.md` notes |
-| **Generated** | everything in `rev<N>/submission/`. Wiped and rebuilt on every run — never edit it, and never keep a clean `.tex` of your own in step with the annotated one. Accepting the tracked changes happens inside the generator |
+| **Generated** | everything in `<stage>/submission/`. Wiped and rebuilt on every run — never edit it, and never keep a clean `.tex` of your own in step with the annotated one. Accepting the tracked changes happens inside the generator |
 
 ## Why the previews are not what you send
 
@@ -209,7 +216,7 @@ source. Intermediate artifacts (`.aux`, `.log`, `.synctex.gz`, …) are gitignor
 
 ## What the generator does
 
-`uv run scripts/make_submission.py [rev<N>]` — newest folder by default:
+`uv run scripts/make_submission.py [stage]` — newest folder by default:
 
 - accepts every tracked change into a **clean** manuscript, and keeps an
   **annotated** one with the changes visible for the editor (only when the source
@@ -235,20 +242,22 @@ elsewhere.
 ## Layout
 
 ```
-draft/                    the initial version, for internal review
-  manuscript.tex            keeps target journal, reviewer suggestions, TOC
+draft/                      the initial version, for internal review
+  manuscript.tex              keeps target journal, reviewer suggestions, TOC
   figs/
-rev0/                     first submission — none of those three
+initial_submission/         first submission — none of those three
   manuscript.tex
   figs/
-rev1/                     first revision
-  manuscript_annotated.tex  the manuscript, with changes marked
+  submission/                 GENERATED — the upload
+revision_1/                 first round of review
+  manuscript_annotated.tex    the manuscript, with changes marked
   response_to_reviewers.tex
   reviewer_comments.md, cover_letter.md
   figs/
-  submission/               GENERATED — the upload
-references.bib            one bibliography, shared by every stage
-scripts/                  make_submission.py, new_revision.py
+  submission/                 GENERATED — the upload
+revision_2/                 second round, and so on
+references.bib              one bibliography, shared by every stage
+scripts/                    make_submission.py, new_revision.py
 ```
 
 `references.bib` is shared, cited as `../references`. An old stage's *working*

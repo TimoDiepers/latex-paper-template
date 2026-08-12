@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Generate the submission package for a revision of the manuscript.
 
-Each rev<N>/ folder holds a revision's working set: the manuscript, figs/ and the
-response letter. The bibliography is shared by all revisions and lives at the
-repository root. The manuscript there is the single
+Each stage of the paper lives in its own folder -- draft/, initial_submission/,
+revision_1/, revision_2/, ... -- holding the manuscript, figs/ and the response
+letter. The bibliography is shared by all of them and lives at the repository
+root. The manuscript there is the single
 source of truth for that revision. From the first revision onwards it is called
 manuscript_annotated.tex, because it carries tracked changes from the `changes`
 package alongside other scaffolding that must not reach the journal: line numbers
@@ -11,7 +12,7 @@ and `\\linelabel` anchors referenced by the response letter, highlighted interna
 notes (target journal, reviewer suggestions), a table of contents and a draft
 date.
 
-This script strips the internal scaffolding and writes rev<N>/submission/ --
+This script strips the internal scaffolding and writes <stage>/submission/ --
 everything a journal asks for, and nothing else:
 
     manuscript_clean.pdf            tracked changes accepted
@@ -24,11 +25,11 @@ Nothing else: the .tex files and figs/ are built, archived into the zip, and the
 removed, so every file in the directory is one upload.
 
 The annotated variant is only produced when the source actually contains tracked
-changes, so an original submission (rev0) yields the clean manuscript alone.
+changes, so a draft or an initial submission yields the clean manuscript alone.
 
 Usage:
-    uv run scripts/make_submission.py              # newest rev<N>/
-    uv run scripts/make_submission.py rev1         # a specific revision
+    uv run scripts/make_submission.py              # the newest stage
+    uv run scripts/make_submission.py revision_1   # a specific stage
     uv run scripts/make_submission.py --no-build   # write the .tex files only
 
 No third-party dependencies; needs pdflatex and bibtex on PATH.
@@ -51,8 +52,14 @@ REPO = Path(__file__).resolve().parent.parent
 BIB = REPO / "references.bib"
 
 # A revision's manuscript is called manuscript_annotated.tex once it carries
-# tracked changes; the original submission just has manuscript.tex.
+# tracked changes; a draft or initial submission just has manuscript.tex.
 SOURCE_NAMES = ("manuscript_annotated.tex", "manuscript.tex")
+
+# The stages a paper moves through, in order: the draft, the first submission,
+# then one folder per round of review.
+STAGE_DRAFT = "draft"
+STAGE_INITIAL = "initial_submission"
+REVISION_PREFIX = "revision_"
 
 # Preamble lines dropped from every variant: review highlighting and the
 # table of contents are never wanted in a submission.
@@ -114,14 +121,24 @@ def find_source(revdir: Path) -> Path | None:
     return None
 
 
-def rev_dirs() -> list[Path]:
-    """All rev<N>/ working sets, oldest first."""
-    revs = sorted(
-        (int(p.name[3:]), p)
-        for p in REPO.glob("rev[0-9]*")
-        if p.is_dir() and p.name[3:].isdigit() and find_source(p) is not None
+def revision_number(name: str) -> int | None:
+    suffix = name[len(REVISION_PREFIX) :]
+    return int(suffix) if name.startswith(REVISION_PREFIX) and suffix.isdigit() else None
+
+
+def stage_dirs() -> list[Path]:
+    """Every stage holding a manuscript, in the order the paper passes through them."""
+    stages = [
+        REPO / name
+        for name in (STAGE_DRAFT, STAGE_INITIAL)
+        if (REPO / name).is_dir() and find_source(REPO / name) is not None
+    ]
+    revisions = sorted(
+        (n, p)
+        for p in REPO.glob(f"{REVISION_PREFIX}*")
+        if p.is_dir() and (n := revision_number(p.name)) is not None and find_source(p) is not None
     )
-    return [p for _, p in revs]
+    return stages + [p for _, p in revisions]
 
 
 def has_tracked_changes(src: str) -> bool:
@@ -392,9 +409,9 @@ def make_source_zip(tex: Path, outdir: Path) -> Path:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument(
-        "rev", nargs="?", type=Path, default=None, help="revision folder (default: the newest rev<N>)"
+        "stage", nargs="?", type=Path, default=None, help="stage folder (default: the newest one)"
     )
-    ap.add_argument("--outdir", type=Path, default=None, help="output dir (default: <rev>/submission)")
+    ap.add_argument("--outdir", type=Path, default=None, help="output dir (default: <stage>/submission)")
     ap.add_argument(
         "--no-build",
         action="store_true",
@@ -402,13 +419,13 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    if args.rev is not None:
-        revdir = args.rev if args.rev.is_absolute() else REPO / args.rev
+    if args.stage is not None:
+        revdir = args.stage if args.stage.is_absolute() else REPO / args.stage
     else:
-        revs = rev_dirs()
-        if not revs:
-            ap.error("no rev<N> with a manuscript found; pass a revision folder explicitly")
-        revdir = revs[-1]
+        stages = stage_dirs()
+        if not stages:
+            ap.error("no stage with a manuscript found; pass a stage folder explicitly")
+        revdir = stages[-1]
 
     source = find_source(revdir)
     if source is None:
@@ -454,7 +471,7 @@ def main() -> int:
     needs_bibtex = any(r"\bibliography{" in tex.read_text() for tex in texs)
     if needs_bibtex:
         if not BIB.exists():
-            ap.error(f"{BIB} not found; it is the bibliography shared by all revisions")
+            ap.error(f"{BIB} not found; it is the bibliography shared by every stage")
         shutil.copy2(BIB, outdir / BIB.name)
 
     for tex in texs:
@@ -473,7 +490,7 @@ def main() -> int:
     # The response letter cites the manuscript's line numbers through xr. Those
     # numbers shift once the internal front matter is stripped, so the letter has
     # to be built here, against the annotated manuscript that actually ships --
-    # building it in the revision folder would reference the wrong lines.
+    # building it in the stage folder would reference the wrong lines.
     letter_src = revdir / "response_to_reviewers.tex"
     annotated_aux = outdir / "manuscript_annotated.aux"
     if letter_src.exists() and annotated_aux.exists():
