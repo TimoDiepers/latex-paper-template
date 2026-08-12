@@ -183,7 +183,8 @@ The export reads like the PDF. It runs a real LaTeX build first and takes the nu
 from it, so citations appear as the same superscript numbers, `\citet` prints the same
 author label, several citations at once compress to the same range such as 1–3, and the
 reference list at the end is numbered in the same order. References to a figure or an
-equation carry the number LaTeX gave them. Figures are embedded as PNG, because Word
+equation carry the number LaTeX gave them, and captions are numbered to match, since
+pandoc writes neither. Figures are embedded as PNG, because Word
 cannot display the PDF figures the manuscript uses. The internal front matter is kept,
 since this is not a document a journal sees.
 

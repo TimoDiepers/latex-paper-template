@@ -300,6 +300,43 @@ def prepare_letter(src_text: str, labels: dict[str, str]) -> tuple[str, list[str
     return text, missing
 
 
+def number_captions(text: str) -> tuple[str, int]:
+    """Write the number into every caption, as LaTeX does and pandoc does not.
+
+    Without this a caption reads "Caption stating..." while the text refers to "Fig. 3",
+    leaving the reader nothing to match it against. Environments are counted in document
+    order, which is how LaTeX numbers them.
+    """
+    counters = {"figure": 0, "table": 0}
+    names = {"figure": "Figure", "table": "Table"}
+    opening = re.compile(r"\\begin\{(figure|table)\*?\}")
+    numbered = 0
+    position = 0
+    while True:
+        m = opening.search(text, position)
+        if not m:
+            return text, numbered
+        kind = m.group(1)
+        end = text.find(rf"\end{{{kind}", m.end())
+        end = len(text) if end == -1 else end
+        block = text[m.end() : end]
+        caption = re.search(r"\\caption(?![a-zA-Z])", block)
+        if caption is None:
+            position = m.end()
+            continue
+        counters[kind] += 1
+        numbered += 1
+        (body,), stop = ps.read_args(block, caption.end(), 1)
+        label = f"{names[kind]} {counters[kind]}"
+        block = (
+            block[: caption.start()]
+            + f"\\caption{{\\textbf{{{label}:}} {body}}}"
+            + block[stop:]
+        )
+        text = text[: m.end()] + block + text[end:]
+        position = m.end() + len(block)
+
+
 def convert_figures(text: str, workdir: Path) -> tuple[str, int]:
     """Turn PDF figures into PNG, which Word can actually display."""
     converted = 0
@@ -372,6 +409,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
     if only is None or only.name == source.name:
         text, refs, missing = resolve_references(tex.read_text(), labels)
         text, uncited = resolve_citations(text, cites)
+        text, captions = number_captions(text)
         text = re.sub(r"\\bibliographystyle\{[^}]*\}\n", "", text)
         text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: bibliography, text)
         text, figures = convert_figures(text, work)
@@ -381,7 +419,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         written.append(target)
         print(
             f"  {source.name}: {refs} references, {len(cites)} bibliography entries, "
-            f"{figures} figures"
+            f"{captions} captions numbered, {figures} figures"
         )
         report_missing(missing + uncited)
 
