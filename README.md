@@ -19,10 +19,22 @@ write it       submit it        round 1            round 2
 3. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
    write the response letter, generate the package, upload it. Repeat per round.
 
-Every stage produces its own `submission/` package the same way — the initial
-submission as much as any revision — so there is one command to remember rather
-than a different procedure per round. The folders sort chronologically in any file
-browser, so the paper's history reads top to bottom.
+**"Generate the package"** means running `uv run scripts/make_submission.py`. It
+writes `<stage>/submission/`, holding exactly the files a journal asks for and
+nothing else:
+
+| File | What it is |
+|---|---|
+| `manuscript_clean.pdf` | the manuscript itself, with all tracked changes accepted |
+| `manuscript_annotated.pdf` | the same text with the changes visible, for the editor — revisions only |
+| `response_to_reviewers.pdf` | the response letter, its line numbers matching the manuscript in this folder — revisions only |
+| `graphical_abstract.pdf` | the graphical abstract on its own, for the slot journals reserve for it |
+| `latex_source_submission.zip` | the LaTeX source: `manuscript_clean.tex` and `figs/`, no PDFs |
+
+Every stage produces one the same way — the initial submission as much as any
+revision — so there is a single command to remember rather than a different
+procedure per round. The folders sort chronologically in any file browser, so the
+paper's history reads top to bottom.
 
 The whole lifecycle in commands:
 
@@ -97,9 +109,9 @@ ships — this template ships them already deleted.
 uv run scripts/make_submission.py
 ```
 
-`manuscript/submission/` now holds the manuscript PDF, the graphical
-abstract as its own file, and a zip of the LaTeX source with its figures — each
-file an upload. Send those.
+`manuscript/submission/` now holds the package: the manuscript, the graphical
+abstract and the source zip. There is no annotated variant or response letter yet,
+since there are no tracked changes and no reviewers to answer. Send what is there.
 
 ## 3. Each round of review — `revision_<N>/`
 
@@ -150,9 +162,9 @@ Then build the package:
 uv run scripts/make_submission.py
 ```
 
-`revision_1/submission/` holds the clean manuscript, the marked-up manuscript for
-the editor, the response letter, the graphical abstract, and the source zip. Send
-those, not the previews.
+`revision_1/submission/` now holds the full package — all five files this time,
+the annotated manuscript and the response letter included. Send those, not the
+previews.
 
 ## Later rounds
 
