@@ -94,13 +94,23 @@ well, with the recipe configured manually (see [Builds](#builds)).
 **2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows, TeX
 Live on Linux. If `pdflatex` already works in your editor, you have this.
 
-**3. uv**, which is what runs the two helper scripts. Follow the one-line install
-for your system in the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
-(macOS and Linux use a `curl` command, Windows a PowerShell one, and it is also in
-Homebrew, winget and pip).
+**3. A way to run the two scripts.** They use only the Python standard library, so
+any Python 3.9 or newer will do:
 
-It installs into your user account and fetches the Python version it needs on first
-use. Nothing else has to be installed or configured.
+```
+python3 scripts/make_submission.py
+```
+
+For a setup that needs no thought about which Python is which, [uv](https://docs.astral.sh/uv/getting-started/installation/)
+is recommended — its installation guide has the one-line command for each system, and
+it fetches a suitable interpreter itself:
+
+```
+uv run scripts/make_submission.py
+```
+
+`uv.lock` pins that interpreter, so the scripts behave the same on every machine.
+Either way, nothing needs installing beyond this.
 
 ## The two commands
 
@@ -116,6 +126,9 @@ Then copy and paste:
 uv run scripts/make_submission.py     # build the files to upload
 uv run scripts/new_revision.py        # start the next round of review
 ```
+
+(or `python3 scripts/…` if you would rather use your own Python — the commands are
+otherwise identical, and the rest of this file writes `uv run` for brevity.)
 
 Both determine the current stage themselves, and both can be run again: they only
 write into a `submission/` folder or create the next stage.
