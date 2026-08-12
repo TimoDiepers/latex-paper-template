@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Generate the submission package for a revision of the manuscript.
 
-Each stage of the paper lives in its own folder -- draft/, manuscript/,
-revision_1/, revision_2/, ... -- holding the manuscript, figs/ and the response
-letter. The bibliography is shared by all of them and lives at the repository
-root. The manuscript there is the single
+Each stage of the paper lives in its own folder -- manuscript/, revision_1/,
+revision_2/, ... -- holding the manuscript, figs/ and the response letter. The
+bibliography is shared by all of them and lives at the repository root. The manuscript there is the single
 source of truth for that revision. From the first revision onwards it is called
 manuscript_annotated.tex, because it carries tracked changes from the `changes`
 package alongside other scaffolding that must not reach the journal: line numbers
@@ -26,7 +25,7 @@ Nothing else: the .tex files and figs/ are built, archived into the zip, and the
 removed, so every file in the directory is one upload.
 
 The annotated variant is only produced when the source actually contains tracked
-changes, so a draft or an initial submission yields the clean manuscript alone.
+changes, so the initial submission yields the clean manuscript alone.
 
 Usage:
     uv run scripts/make_submission.py              # the newest stage
@@ -53,13 +52,12 @@ REPO = Path(__file__).resolve().parent.parent
 BIB = REPO / "references.bib"
 
 # A revision's manuscript is called manuscript_annotated.tex once it carries
-# tracked changes; a draft or initial submission just has manuscript.tex.
+# tracked changes; before that it is just manuscript.tex.
 SOURCE_NAMES = ("manuscript_annotated.tex", "manuscript.tex")
 
-# The stages a paper moves through, in order: the draft, the first submission,
-# then one folder per round of review.
-STAGE_DRAFT = "draft"
-STAGE_INITIAL = "manuscript"
+# The stages a paper moves through, in order: the manuscript itself, then one
+# folder per round of review.
+STAGE_MANUSCRIPT = "manuscript"
 REVISION_PREFIX = "revision_"
 
 # Preamble lines dropped from every variant: review highlighting and the
@@ -129,11 +127,8 @@ def revision_number(name: str) -> int | None:
 
 def stage_dirs() -> list[Path]:
     """Every stage holding a manuscript, in the order the paper passes through them."""
-    stages = [
-        REPO / name
-        for name in (STAGE_DRAFT, STAGE_INITIAL)
-        if (REPO / name).is_dir() and find_source(REPO / name) is not None
-    ]
+    first = REPO / STAGE_MANUSCRIPT
+    stages = [first] if first.is_dir() and find_source(first) is not None else []
     revisions = sorted(
         (n, p)
         for p in REPO.glob(f"{REVISION_PREFIX}*")

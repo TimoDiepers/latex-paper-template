@@ -1,22 +1,26 @@
 # LaTeX paper template
 
-Write a paper, submit it, and work through however many rounds of review it takes, without hand-maintaining the pile of files each journal asks for. You write
-prose and mark your changes; the tooling produces the clean manuscript, the
-marked-up manuscript, the response letter with correct line references, the
-graphical abstract and the source archive.
+Write a paper, submit it, and work through however many rounds of review it takes,
+without hand-maintaining the pile of files each journal asks for. You write prose
+and mark your changes; the tooling produces the clean manuscript, the marked-up
+manuscript, the response letter with correct line references, the graphical
+abstract and the source archive.
 
-Everything here is placeholder text. Replace it and delete what you do not need.
+Everything here is placeholder text — replace it with your own. `revision_1/` is a
+worked example of a revision round: it ships a manuscript carrying one of each kind
+of tracked change and a response letter wired to them, so you can see the mechanism
+before you need it. Overwrite its contents when your first reviews arrive.
 
 ## At a glance
 
 ```
-draft/   ──►   manuscript/   ──►   revision_1/   ──►   revision_2/   ──►  …
-write it       submit it        round 1            round 2
+manuscript/   ──►   revision_1/   ──►   revision_2/   ──►  …
+write + submit      round 1            round 2
 ```
 
-1. **Write** the paper in `draft/`, iterating with your coauthors.
-2. **Submit**: open `manuscript/`, generate the package, upload it.
-3. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
+1. **Write and submit**: the paper lives in `manuscript/`. When it is ready,
+   generate the package and upload it.
+2. **Each round of review** gets its own `revision_<N>/`: mark up the manuscript,
    write the response letter, generate the package, upload it. Repeat per round.
 
 **"Generate the package"** means running `uv run scripts/make_submission.py`. It
@@ -39,12 +43,11 @@ paper's history reads top to bottom.
 The whole lifecycle in commands:
 
 ```
-cd draft && pdflatex … manuscript.tex        # 1. write and preview
-uv run scripts/new_revision.py              #    -> manuscript/
-uv run scripts/make_submission.py           # 2. upload manuscript/submission/
-uv run scripts/new_revision.py              # 3. reviews arrived -> revision_1/
-uv run scripts/make_submission.py           #    upload revision_1/submission/
-uv run scripts/new_revision.py              #    next round -> revision_2/
+cd manuscript && pdflatex … manuscript.tex   # 1. write and preview
+uv run scripts/make_submission.py            #    upload manuscript/submission/
+uv run scripts/new_revision.py               # 2. reviews arrived -> revision_1/
+uv run scripts/make_submission.py            #    upload revision_1/submission/
+uv run scripts/new_revision.py               #    next round -> revision_2/
 ```
 
 `new_revision.py` always opens the stage that follows the newest one, and
@@ -58,8 +61,7 @@ on, so you can always see exactly what was sent and when.
 
 | Stage | Folder | You write | You get |
 |---|---|---|---|
-| Prepare | `draft/` | `manuscript.tex` | a PDF for coauthors and internal review |
-| Submit | `manuscript/` | nothing new — carried over from `draft/` | `submission/`: manuscript, graphical abstract, source zip |
+| Write and submit | `manuscript/` | `manuscript.tex` | previews for coauthors, then `submission/`: manuscript, graphical abstract, source zip |
 | Revise, once per round | `revision_1/`, `revision_2/`, … | `manuscript_annotated.tex` **and** `response_to_reviewers.tex` | `submission/`: clean + annotated manuscript, response letter, and the rest |
 
 Revising and resubmitting are the same step: you mark up the manuscript, answer
@@ -68,42 +70,29 @@ package a `revision_<N>/` folder produces.
 
 ---
 
-## 1. Prepare the initial version — `draft/`
+## 1. Write and submit — `manuscript/`
 
-This is where the paper actually gets written, and where you will spend most of
-your time. Edit `draft/manuscript.tex`, drop figures in `draft/figs/`, add
+This is where the paper gets written, and where you will spend most of your time.
+Edit `manuscript/manuscript.tex`, drop figures in `manuscript/figs/`, add
 references to `references.bib` at the repository root.
 
 ```
-cd draft
+cd manuscript
 pdflatex -synctex=1 -interaction=nonstopmode -file-line-error manuscript.tex
 bibtex manuscript
 pdflatex … ; pdflatex …          # twice more, to settle refs
 ```
 
-Iterate here as long as you like: send the PDF round, collect comments, rewrite.
-Lines are numbered from the abstract onwards, every fifth one, so coauthors can
-point at them.
+Iterate as long as you like: send the PDF round, collect comments, rewrite. Lines
+are numbered from the abstract onwards, every fifth one, so coauthors can point at
+them.
 
-`draft/` is also the only stage that carries the things you want for internal
-review but never want a journal to see — the target journal, the suggested
-reviewers, and a table of contents. Use `\hl{…}` to highlight anything still
-open. All of it disappears from the next stage.
-
-## 2. Submit — `manuscript/`
+Keep whatever helps that internal circulation in the source — this template ships
+a target journal, a list of suggested reviewers and a table of contents, and
+`\hl{…}` highlights anything still open. **None of it can reach a journal**: the
+generator strips all of it. So there is nothing to clean up before submitting.
 
 When the manuscript is ready:
-
-```
-uv run scripts/new_revision.py
-```
-
-`draft/` freezes with its copy of everything, and you carry on in `manuscript/`.
-There is nothing to clean up by hand: the generator drops the target journal, the
-suggested reviewers and the table of contents on its own, so they cannot reach a
-journal even if you leave them in the source. Delete them from
-`manuscript/manuscript.tex` only if you want your local previews to match what
-ships — this template ships them already deleted.
 
 ```
 uv run scripts/make_submission.py
@@ -113,7 +102,10 @@ uv run scripts/make_submission.py
 abstract and the source zip. There is no annotated variant or response letter yet,
 since there are no tracked changes and no reviewers to answer. Send what is there.
 
-## 3. Each round of review — `revision_<N>/`
+Once you open the first revision, `manuscript/` freezes with that package beside
+it, a record of exactly what was submitted.
+
+## 2. Each round of review — `revision_<N>/`
 
 Reviews arrive. Open the next folder and set it up for tracked changes:
 
@@ -122,8 +114,9 @@ uv run scripts/new_revision.py
 ```
 
 Rename `manuscript.tex` to `manuscript_annotated.tex` and load the `changes`
-package — copy the preamble block from the `revision_1/manuscript_annotated.tex`
-shipped with this template. From here on, a round means editing **two files**:
+package — copy the preamble block from this template's `revision_1/`, along with
+its `response_to_reviewers.tex`, since the manuscript stage has no letter to carry
+forward. From here on, a round means editing **two files**:
 
 **`manuscript_annotated.tex`** — the manuscript, with every change marked:
 
@@ -174,7 +167,7 @@ uv run scripts/new_revision.py
 
 This opens `revision_2/`. Accept the round you just finished in its
 `manuscript_annotated.tex` — the markup from round one has been answered, so clear
-it before marking up round two — then work through step 3 again. `revision_1/`
+it before marking up round two — then work through step 2 again. `revision_1/`
 freezes with its own submission package.
 
 ---
@@ -256,11 +249,9 @@ elsewhere.
 ## Layout
 
 ```
-draft/                      the initial version, for internal review
-  manuscript.tex              keeps target journal, reviewer suggestions, TOC
-  figs/
-manuscript/                 the paper as submitted
-  manuscript.tex
+manuscript/                 the paper: written here, submitted from here
+  manuscript.tex              may keep target journal, reviewer suggestions, TOC —
+                              the generator strips them
   figs/
   submission/                 GENERATED — the upload
 revision_1/                 first round of review

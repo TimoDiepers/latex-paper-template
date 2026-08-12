@@ -1,3 +1,6 @@
+% Write the paper here, and submit from here. The target journal, the suggested
+% reviewers and the table of contents below are for internal circulation; the
+% generator strips them, so they never reach a journal.
 \documentclass[12pt,a4paper]{article}
 \usepackage{authblk}
 \usepackage{fullpage}
@@ -25,7 +28,11 @@
 \usepackage{graphicx}
 \usepackage[super, numbers, sort&compress]{natbib}
 
+% Highlighting for internal review.
 \usepackage{xcolor}
+\usepackage{soul}
+\definecolor{reviewyellow}{rgb}{1, 1, 0.6}
+\sethlcolor{reviewyellow}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -69,6 +76,21 @@ first keyword, second keyword, third keyword, fourth keyword
     \includegraphics[width=\textwidth]{figs/graphical_abstract.pdf}
     \caption{Graphical Abstract.}
 \end{figure}
+
+\section*{\hl{Target Journal: Name of the Journal}}
+
+\section*{\hl{Reviewer Suggestions}}
+
+\begin{itemize}
+    \item \hl{First Suggested Reviewer --- Institution, Country}
+    \item \hl{Second Suggested Reviewer --- Institution, Country}
+    \item \hl{Third Suggested Reviewer --- Institution, Country}
+\end{itemize}
+
+\newpage
+
+\tableofcontents
+\newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
