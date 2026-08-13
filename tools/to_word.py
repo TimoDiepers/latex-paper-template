@@ -3,7 +3,7 @@
 
 This is a convenience for internal review rather than part of the submission path.
 Nothing a journal receives comes out of here, so the export keeps the internal front
-matter that prepare_submission.py strips.
+matter that submit.py strips.
 
 By default it works on the newest stage. At the manuscript stage that means the
 manuscript alone. In a revision it also converts response_to_reviewers.tex, so whoever
@@ -29,9 +29,9 @@ real LaTeX build first and takes what it needs from it.
 Tracked changes are accepted, so the manuscript reads as the revised text.
 
 Usage:
-    uv run scripts/export_to_word.py                          # the newest stage
-    uv run scripts/export_to_word.py revision_1               # a specific stage
-    uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
+    uv run tools/to_word.py                          # the newest stage
+    uv run tools/to_word.py revision_1               # a specific stage
+    uv run tools/to_word.py revision_1/response_to_reviewers.tex
 
 Needs pandoc and pdftoppm (poppler) in addition to pdflatex and bibtex.
 """
@@ -48,9 +48,9 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import prepare_submission as ps  # noqa: E402  (same directory, shared helpers)
+import submit  # noqa: E402  (same directory, shared helpers)
 
-REPO = ps.REPO
+REPO = submit.REPO
 LETTER = "response_to_reviewers.tex"
 SUFFIX = "_for_review.docx"
 FIGURE_DPI = 200
@@ -225,7 +225,7 @@ def replace_macro(text: str, name: str, nargs: int, render) -> str:
         m = pattern.search(text)
         if not m:
             return text
-        args, end = ps.read_args(text, m.end(), nargs)
+        args, end = submit.read_args(text, m.end(), nargs)
         text = text[: m.start()] + render(*args) + text[end:]
 
 
@@ -237,7 +237,8 @@ def prepare_manuscript(src_text: str, basedir: Path) -> str:
     spliced in here or the build cannot find it.
     """
     # Comments go first, so a macro mentioned in one is not mistaken for a use of it.
-    text = ps.strip_comments(ps.flatten(ps.inline_inputs(src_text, basedir), ps.FLATTEN_CLEAN))
+    text = submit.inline_inputs(src_text, basedir)
+    text = submit.strip_comments(submit.flatten(text, submit.FLATTEN_CLEAN))
     text = "\n".join(
         line for line in text.split("\n") if not any(tok in line for tok in PREAMBLE_DROP)
     )
@@ -275,7 +276,7 @@ def drop_definition(text: str, kind: str, name: str, groups: int) -> str:
             i = skip_blanks(text, text.index("]", i) + 1)
         for _ in range(groups):
             i = skip_blanks(text, i)
-            i = ps.match_brace(text, i)
+            i = submit.match_brace(text, i)
         text = text[: m.start()] + text[i:].lstrip("\n")
 
 
@@ -284,20 +285,20 @@ def line_labels(src_text: str, work: Path, basedir: Path) -> dict[str, str]:
 
     A Word file has no line numbers, so the letter's references have to point at the
     annotated manuscript that reviewers read. That means building exactly what
-    prepare_submission.py ships, tracked changes visible and internal front matter gone.
+    submit.py ships, tracked changes visible and internal front matter gone.
     Numbering the accepted text instead would put ln:gap at line 28 where the reviewer
     sees 13.
 
     basedir is where the source lives, not the working directory: an \\input names a
     path relative to the file that holds it.
     """
-    text = ps.transform(src_text, basedir, annotated=True)
+    text = submit.transform(src_text, basedir, annotated=True)
     text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: r"\bibliography{references}", text)
     numbered = work / "numbered.tex"
     numbered.write_text(text)
-    ps.pdflatex(numbered)
-    ps.bibtex(numbered)
-    ps.pdflatex(numbered)
+    submit.pdflatex(numbered)
+    submit.bibtex(numbered)
+    submit.pdflatex(numbered)
     aux = numbered.with_suffix(".aux")
     if not aux.exists():
         return {}
@@ -315,7 +316,7 @@ def prepare_letter(src_text: str, labels: dict[str, str]) -> tuple[str, list[str
     # LaTeX plumbing that only exists to keep bibtex happy, then the comments, so the
     # block documenting \\comm and \\lnp is not mistaken for uses of them.
     text = re.sub(r"\\makeatletter.*?\\makeatother", "", src_text, flags=re.S)
-    text = ps.strip_comments(text)
+    text = submit.strip_comments(text)
     text = "\n".join(
         line for line in text.split("\n") if not any(tok in line for tok in PREAMBLE_DROP)
     )
@@ -379,7 +380,7 @@ def number_captions(text: str) -> tuple[str, int]:
             continue
         counters[kind] += 1
         numbered += 1
-        (body,), stop = ps.read_args(block, caption.end(), 1)
+        (body,), stop = submit.read_args(block, caption.end(), 1)
         label = f"{names[kind]} {counters[kind]}"
         block = (
             block[: caption.start()]
@@ -495,20 +496,20 @@ def report_unhandled(commands: list[str]) -> None:
 
 def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
     """Convert a stage's documents, or only the file named, and return what was written."""
-    source = ps.find_source(stage)
+    source = submit.find_source(stage)
     if source is None:
-        sys.exit(f"none of {', '.join(ps.SOURCE_NAMES)} found in {stage}")
+        sys.exit(f"none of {', '.join(submit.SOURCE_NAMES)} found in {stage}")
 
     # The manuscript is built even when only the letter was asked for, because the
     # letter's line references are numbers out of the manuscript's .aux.
     tex = work / "manuscript.tex"
     tex.write_text(prepare_manuscript(source.read_text(), source.parent))
-    shutil.copy2(ps.BIB, work / ps.BIB.name)
+    shutil.copy2(submit.BIB, work / submit.BIB.name)
     copy_figures(tex.read_text(), stage, work)
 
-    ps.pdflatex(tex)
-    ps.bibtex(tex)
-    ps.pdflatex(tex)
+    submit.pdflatex(tex)
+    submit.bibtex(tex)
+    submit.pdflatex(tex)
     bbl = tex.with_suffix(".bbl")
     if not bbl.exists():
         sys.exit(f"bibtex produced no .bbl; see {tex.with_suffix('.blg')}")
@@ -541,7 +542,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         letter_labels = {**labels, **line_labels(source.read_text(), work, source.parent)}
         # The letter shares the manuscript's title block through \input, and it too is
         # written to the working directory, where that file is out of reach.
-        letter_text = ps.inline_inputs(letter_source.read_text(), letter_source.parent)
+        letter_text = submit.inline_inputs(letter_source.read_text(), letter_source.parent)
         text, missing = prepare_letter(letter_text, letter_labels)
         text, refs, ref_missing = resolve_references(text, letter_labels)
         text, uncited, unhandled = resolve_citations(text, cites)
@@ -572,12 +573,12 @@ def main() -> int:
     args = ap.parse_args()
 
     require("pandoc", "pdftoppm", "pdflatex", "bibtex")
-    if not ps.BIB.exists():
-        ap.error(f"{ps.BIB} not found")
+    if not submit.BIB.exists():
+        ap.error(f"{submit.BIB} not found")
 
     only: Path | None = None
     if args.target is None:
-        stages = ps.stage_dirs()
+        stages = submit.stage_dirs()
         if not stages:
             ap.error("no stage with a manuscript found; name a stage or a file")
         stage = stages[-1]
