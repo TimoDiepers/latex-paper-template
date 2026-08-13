@@ -27,6 +27,12 @@ removed, so every file in the directory is one upload.
 The annotated variant is only produced when the source actually contains tracked
 changes, so the initial submission yields the clean manuscript alone.
 
+Before the package is declared finished it is checked over: the letter's line
+references must resolve against the manuscript that actually ships, placeholder
+text and highlighted notes are reported, and a LaTeX error or an undefined
+citation stops the run. Files reached by \\input are spliced in, so a manuscript
+split across several files still ships as one.
+
 Usage:
     uv run scripts/prepare_submission.py              # the newest stage
     uv run scripts/prepare_submission.py revision_1   # a specific stage
@@ -102,15 +108,54 @@ NARGS = {"replaced": 2, "added": 1, "deleted": 1, "highlight": 1, "hl": 1, "line
 # settings): pdflatex, bibtex, pdflatex, pdflatex, output beside the source.
 PDFLATEX_ARGS = ("-synctex=1", "-interaction=nonstopmode", "-file-line-error")
 
+# Internal sections removed from every submission, matched on their title,
+# case-insensitively. Add your own here if the manuscript grows more of them.
+INTERNAL_SECTIONS = ("Target Journal", "Reviewer Suggestions")
+
 # Text that means "not finished yet". These reach the PDF as literal words once
 # \hl is unwrapped, so they are worth shouting about -- but not worth blocking a
-# build, since a package is often assembled before the last numbers land.
-PLACEHOLDER_PATTERNS = (r"\bXX+\b", r"\bHARDWARE\b", r"TO BE DONE", r"\\todoitem")
+# build, since a package is often assembled before the last numbers land. Add
+# whatever placeholder your group writes.
+PLACEHOLDER_PATTERNS = (r"\bXX+\b", r"TO BE DONE", r"\\todoitem")
+
+# The external programs a build needs. Checked before anything is written, so a
+# missing LaTeX installation is one sentence rather than a traceback.
+REQUIRED_TOOLS = ("pdflatex", "bibtex")
 
 ARTIFACT_GLOBS = (
     "*.aux", "*.bbl", "*.blg", "*.fdb_latexmk", "*.fls",
     "*.loc", "*.log", "*.out", "*.soc", "*.synctex.gz", "*.toc",
 )
+
+
+class Failure(Exception):
+    """Something the author can fix. Reported as one sentence, not a traceback."""
+
+
+def run_cli(entry) -> int:
+    """Run a script's main(), turning an expected failure into a readable message.
+
+    A Python traceback tells a LaTeX author nothing they can act on, so the
+    conditions we anticipate -- a missing tool, a broken reference, a figure that
+    is not where the manuscript says -- surface as a single line instead.
+    """
+    try:
+        return entry()
+    except Failure as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def require(*tools: str) -> None:
+    """Check for the external programs a build needs, before writing anything."""
+    missing = [t for t in tools if shutil.which(t) is None]
+    if missing:
+        raise Failure(
+            f"not found on PATH: {', '.join(missing)}. A LaTeX installation provides "
+            "pdflatex and bibtex -- MacTeX on macOS, MiKTeX or TeX Live on Windows, "
+            "TeX Live on Linux. If your editor can build the manuscript, open a new "
+            "terminal so it picks up the same PATH."
+        )
 
 
 def find_source(revdir: Path) -> Path | None:
@@ -201,11 +246,16 @@ def flatten(text: str, macros: dict) -> str:
 
 
 def strip_section(text: str, title_fragment: str) -> str:
-    """Remove a \\section*{...} whose title contains `title_fragment`, up to the next section."""
+    """Remove a \\section*{...} whose title contains `title_fragment`, up to the next section.
+
+    Matched case-insensitively: a section retitled "Target journal" is the same
+    internal note as "Target Journal", and failing to recognise it would send it
+    to the journal.
+    """
     pattern = re.compile(r"\\section\*?\{")
     for m in pattern.finditer(text):
         end = match_brace(text, m.end() - 1)
-        if title_fragment not in text[m.end() : end]:
+        if title_fragment.casefold() not in text[m.end() : end].casefold():
             continue
         nxt = pattern.search(text, end)
         return text[: m.start()] + text[nxt.start() if nxt else len(text) :]
@@ -275,8 +325,37 @@ def strip_comments(text: str) -> str:
     return "\n".join(kept)
 
 
-def transform(src: str, source_name: str, *, annotated: bool) -> str:
-    text = src
+def inline_inputs(text: str, basedir: Path) -> str:
+    """Splice \\input{...} files in, so a generated file stands on its own.
+
+    The shipped .tex travels to a journal alone, and the working copies the Word
+    export builds live in a temporary directory, so neither can reach a file the
+    source sits beside -- the shared title block, or a manuscript split into one
+    file per section. Paths resolve relative to the file that names them, which is
+    what LaTeX itself does, and an \\input inside a comment is left alone.
+    """
+    out = []
+    for line in text.split("\n"):
+        cut = comment_start(line)
+        code = line if cut is None else line[:cut]
+        m = re.search(r"\\input\{([^}]*)\}", code)
+        if m is None:
+            out.append(line)
+            continue
+        path = basedir / m.group(1)
+        if not path.suffix:
+            path = path.with_suffix(".tex")
+        if not path.exists():
+            raise Failure(f"\\input{{{m.group(1)}}} in {basedir} points at {path}, which does not exist")
+        body = inline_inputs(path.read_text().rstrip(), path.parent)
+        out.append(code[: m.start()] + body + code[m.end() :])
+    return "\n".join(out)
+
+
+def transform(src: str, basedir: Path, *, annotated: bool) -> str:
+    # Before anything else, so a preamble or a section living in its own file is
+    # stripped and flattened on the same terms as one written inline.
+    text = inline_inputs(src, basedir)
 
     drop = PREAMBLE_DROP if annotated else PREAMBLE_DROP + PREAMBLE_DROP_CLEAN
     text = "\n".join(line for line in text.split("\n") if not any(tok in line for tok in drop))
@@ -286,8 +365,8 @@ def transform(src: str, source_name: str, *, annotated: bool) -> str:
     # a copy of it sits next to the generated .tex, so point there instead.
     text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: r"\bibliography{references}", text)
 
-    text = strip_section(text, "Target Journal")
-    text = strip_section(text, "Reviewer Suggestions")
+    for title in INTERNAL_SECTIONS:
+        text = strip_section(text, title)
 
     text = flatten(text, FLATTEN_ANNOTATED if annotated else FLATTEN_CLEAN)
     text = ensure_line_numbers(text)
@@ -327,7 +406,7 @@ def bibtex(tex: Path) -> None:
 def assert_log_clean(tex: Path) -> None:
     """Fail loudly on LaTeX errors or unresolved citations/references."""
     if not tex.with_suffix(".pdf").exists():
-        raise RuntimeError(f"{tex.name}: no PDF produced")
+        raise Failure(f"{tex.name}: no PDF produced; see {tex.with_suffix('.log')}")
     log = tex.with_suffix(".log").read_text(errors="replace")
     # -file-line-error reports "file.tex:12: message" instead of "! message",
     # so both shapes have to be recognised.
@@ -338,8 +417,9 @@ def assert_log_clean(tex: Path) -> None:
     if errors or undefined:
         for line in (errors + undefined)[:10]:
             print(f"  {line.strip()}", file=sys.stderr)
-        raise RuntimeError(
-            f"{tex.name}: {len(errors)} error(s), {len(undefined)} undefined citation/reference(s)"
+        raise Failure(
+            f"{tex.name}: {len(errors)} error(s), {len(undefined)} undefined "
+            f"citation/reference(s), listed above. Full log: {tex.with_suffix('.log')}"
         )
 
 
@@ -347,7 +427,7 @@ def inline_bibliography(tex: Path) -> None:
     """Replace \\bibliographystyle/\\bibliography with the generated .bbl contents."""
     bbl = tex.with_suffix(".bbl")
     if not bbl.exists():
-        raise FileNotFoundError(f"{bbl} not found -- did the bibtex pass run?")
+        raise Failure(f"{bbl} not found -- did the bibtex pass run? See {tex.with_suffix('.blg')}")
     text = tex.read_text()
     text = re.sub(r"\\bibliographystyle\{[^}]*\}\n", "", text)
     # lambda, not a template string: .bbl content is full of backslashes.
@@ -361,7 +441,10 @@ def copy_figures(text: str, revdir: Path, outdir: Path) -> set[str]:
     for rel in figs:
         src = revdir / rel
         if not src.exists():
-            raise FileNotFoundError(f"figure referenced but missing: {src}")
+            raise Failure(
+                f"figure referenced but missing: {src}. \\includegraphics paths are "
+                f"relative to {revdir.name}/, so a figure belongs in {revdir.name}/figs/."
+            )
         dst = outdir / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
@@ -369,19 +452,72 @@ def copy_figures(text: str, revdir: Path, outdir: Path) -> set[str]:
 
 
 def warn_placeholders(tex: Path) -> int:
-    """Report unfilled placeholders in a generated .tex. Returns how many."""
+    """Report unfilled placeholders in a .tex. Returns how many.
+
+    Comments and macro definitions are skipped, because the response letter both
+    defines \\todoitem and documents it in a comment, and neither reaches the page.
+    """
     pattern = re.compile("|".join(PLACEHOLDER_PATTERNS))
-    hits = [
-        (n, line) for n, line in enumerate(tex.read_text().split("\n"), 1) if pattern.search(line)
-    ]
-    for n, line in hits:
-        excerpt = " ".join(line.split())
-        for m in pattern.finditer(line):
-            start = max(0, m.start() - 40)
-            excerpt = " ".join(line[start : m.end() + 40].split())
-            break
+    definition = re.compile(r"\\(?:re)?newcommand\{\\?[A-Za-z]+\}")
+    hits = 0
+    for n, line in enumerate(tex.read_text().split("\n"), 1):
+        cut = comment_start(line)
+        code = line if cut is None else line[:cut]
+        if definition.search(code):
+            continue
+        m = pattern.search(code)
+        if m is None:
+            continue
+        hits += 1
+        start = max(0, m.start() - 40)
+        excerpt = " ".join(code[start : m.end() + 40].split())
         print(f"  {tex.name}:{n}: ...{excerpt}...", file=sys.stderr)
-    return len(hits)
+    return hits
+
+
+def surviving_highlights(src: str, basedir: Path) -> list[str]:
+    """The \\hl{...} notes that reach the journal, as plain text once the colour goes.
+
+    Highlighting marks a passage as still open, and unwrapping it keeps the words:
+    only the two internal sections are removed outright. A note left highlighted is
+    therefore submitted verbatim, which is worth saying out loud. It doubles as the
+    net under strip_section -- a retitled internal section still has its highlighted
+    heading, so it shows up here.
+    """
+    text = strip_comments(inline_inputs(src, basedir))
+    for title in INTERNAL_SECTIONS:
+        text = strip_section(text, title)
+    notes = []
+    for m in re.finditer(r"\\(?:hl|highlight)(?![a-zA-Z])", text):
+        (body,), _ = read_args(text, m.end(), 1)
+        notes.append(" ".join(body.split()))
+    return notes
+
+
+def letter_line_references(letter_src: Path) -> set[str]:
+    """The line labels a response letter points at."""
+    text = strip_comments(letter_src.read_text())
+    # The definitions of \lnp and \lnum refer to their own argument as #1, which is
+    # a label no manuscript defines.
+    return {k for k in re.findall(r"\\ln(?:p|um)\{([^}]*)\}", text) if "#" not in k}
+
+
+def check_line_references(letter_src: Path, defined: set[str]) -> None:
+    """Every \\lnp{...} in the letter must resolve against the manuscript that ships.
+
+    An unresolved one is not a silent ??: the letter prints a red "[line ?? --
+    rebuild manuscript_annotated.tex]" in its place, and a package carrying that
+    has to be stopped rather than noticed by an editor. Checked twice -- against the
+    source before anything is built, so the answer comes in a second, and against
+    the shipped manuscript's .aux, which is what the letter will really read.
+    """
+    missing = sorted(letter_line_references(letter_src) - defined)
+    if missing:
+        raise Failure(
+            f"{letter_src.name} points at line labels the manuscript does not define: "
+            f"{', '.join(missing)}. Add \\linelabel{{...}} at the matching place in the "
+            "manuscript, or drop the reference from the letter."
+        )
 
 
 def make_source_zip(tex: Path, outdir: Path) -> Path:
@@ -402,6 +538,26 @@ def make_source_zip(tex: Path, outdir: Path) -> Path:
     return archive
 
 
+def clear_outdir(outdir: Path, *, forced: bool) -> None:
+    """Empty the output directory, refusing to delete anything that is not ours.
+
+    Everything here is rebuilt from scratch on every run, so a stale .aux or .bbl
+    can never mask a problem -- but --outdir accepts any path, and a mistyped one
+    would take the directory with it.
+    """
+    if not outdir.exists():
+        outdir.mkdir(parents=True)
+        return
+    disposable = outdir.name == "submission" or not any(outdir.iterdir())
+    if not disposable and not forced:
+        raise Failure(
+            f"{outdir} already exists, is not empty, and is not a submission/ folder. "
+            "Everything in it would be deleted. Pass --force if that is what you meant."
+        )
+    shutil.rmtree(outdir)
+    outdir.mkdir(parents=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument(
@@ -412,6 +568,11 @@ def main() -> int:
         "--no-build",
         action="store_true",
         help="write the .tex files and stop, leaving them in place for inspection",
+    )
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="let --outdir empty a directory that is not a submission/ folder",
     )
     args = ap.parse_args()
 
@@ -427,13 +588,24 @@ def main() -> int:
     if source is None:
         ap.error(f"none of {', '.join(SOURCE_NAMES)} found in {revdir}")
 
-    outdir = args.outdir or revdir / "submission"
-    # Rebuild from scratch, so a stale .aux or .bbl can never mask a problem.
-    if outdir.exists():
-        shutil.rmtree(outdir)
-    outdir.mkdir(parents=True)
+    # Before writing anything, so a missing LaTeX installation is reported rather
+    # than discovered halfway through a half-built package.
+    if not args.no_build:
+        require(*REQUIRED_TOOLS)
 
     src_text = source.read_text()
+
+    # Cheap and first: a letter pointing at an anchor the manuscript never sets is
+    # worth saying before a three-pass LaTeX build, not after one.
+    letter_src = revdir / "response_to_reviewers.tex"
+    if letter_src.exists():
+        check_line_references(
+            letter_src, set(re.findall(r"\\linelabel\{([^}]*)\}", inline_inputs(src_text, revdir)))
+        )
+
+    outdir = args.outdir or revdir / "submission"
+    clear_outdir(outdir, forced=args.force)
+
     variants = [("manuscript_clean.tex", False)]
     if has_tracked_changes(src_text):
         variants.append(("manuscript_annotated.tex", True))
@@ -442,7 +614,7 @@ def main() -> int:
     texs = []
     for name, annotated in variants:
         tex = outdir / name
-        text = transform(src_text, source.name, annotated=annotated)
+        text = transform(src_text, revdir, annotated=annotated)
         tex.write_text(text)
         figs |= copy_figures(text, revdir, outdir)
         texs.append(tex)
@@ -487,14 +659,19 @@ def main() -> int:
     # numbers shift once the internal front matter is stripped, so the letter has
     # to be built here, against the annotated manuscript that actually ships --
     # building it in the stage folder would reference the wrong lines.
-    letter_src = revdir / "response_to_reviewers.tex"
     annotated_aux = outdir / "manuscript_annotated.aux"
+    letter_placeholders = 0
     if letter_src.exists() and annotated_aux.exists():
+        check_line_references(
+            letter_src,
+            set(re.findall(r"\\newlabel\{([^}]+)\}", annotated_aux.read_text(errors="replace"))),
+        )
         letter = outdir / letter_src.name
-        shutil.copy2(letter_src, letter)
+        letter.write_text(inline_inputs(letter_src.read_text(), revdir))
         pdflatex(letter)
         pdflatex(letter)
         assert_log_clean(letter)
+        letter_placeholders = warn_placeholders(letter)
         letter.unlink()
         print(f"built {letter.with_suffix('.pdf').relative_to(REPO)} (against the shipped manuscript)")
     elif letter_src.exists():
@@ -504,11 +681,22 @@ def main() -> int:
             file=sys.stderr,
         )
 
-    placeholders = sum(warn_placeholders(tex) for tex in texs)
+    placeholders = sum(warn_placeholders(tex) for tex in texs) + letter_placeholders
     if placeholders:
         print(
             f"WARNING: {placeholders} line(s) still contain placeholder text (above). "
             "The package was built anyway.",
+            file=sys.stderr,
+        )
+
+    notes = surviving_highlights(src_text, revdir)
+    if notes:
+        for note in notes:
+            print(f"  {note[:100]}", file=sys.stderr)
+        print(
+            f"WARNING: {len(notes)} highlighted note(s) above are in the submission as "
+            "plain text. Highlighting is a colour, not a fence: only the "
+            f"{' and '.join(INTERNAL_SECTIONS)} sections are removed outright.",
             file=sys.stderr,
         )
 
@@ -520,12 +708,14 @@ def main() -> int:
     print(f"packed {archive.relative_to(REPO)}")
 
     # The sources now live in the archive, so the directory is left holding only
-    # what gets uploaded: the PDFs and that one zip.
+    # what gets uploaded: the PDFs and that one zip. A paper without figures never
+    # had a figs/ to remove.
     for tex in outdir.glob("*.tex"):
         tex.unlink()
-    shutil.rmtree(outdir / "figs")
+    if (outdir / "figs").is_dir():
+        shutil.rmtree(outdir / "figs")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(run_cli(main))

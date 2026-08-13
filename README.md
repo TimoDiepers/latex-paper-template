@@ -1,142 +1,168 @@
 # LaTeX paper template
 
-A repository structure for scientific manuscripts, covering writing, submission and
-the revision rounds that follow. You keep a handful of source files. Everything a
-journal receives is generated from them, and every version you sent stays as it was.
+Write your paper once. This repository turns it into the files a journal asks for, and
+keeps every version you sent exactly as you sent it.
 
-Two scripts do the work.
+You edit one manuscript. When you are ready to submit, one command produces the upload
+package: the PDF, the graphical abstract, and a zip of the sources, with the internal
+notes stripped out and the bibliography folded in. When the reviews come back, another
+command opens a revision folder with the response letter ready to fill in — and the
+previous round's package stays frozen beside it as the record of what you sent.
 
-- **`scripts/prepare_submission.py`** builds the files you upload, for whichever stage
-  the paper is at.
-- **`scripts/new_revision.py`** opens the next revision with its documents already
-  prepared, meaning the manuscript carried over and set up for tracked changes, and a
-  response letter and notes ready to fill in.
+You do not need to be comfortable with the command line. There are two commands, and
+they are the same every time.
 
-A third script is a convenience rather than part of that path.
-**`scripts/export_to_word.py`** exports the manuscript to Word, which is useful while a
-draft circulates internally and colleagues would rather comment there.
+## Getting started
 
-The whole lifecycle looks like this.
+**1. Make your own copy.** Click **Use this template** at the top of
+[this repository](https://github.com/TimoDiepers/latex-paper-template), give it a name,
+then download it or clone it to your computer.
+
+**2. Install three things.** These are our recommendations - other options exist.
+
+| | What it is | Where |
+|---|---|---|
+| **A LaTeX distribution** | the program that turns `.tex` files into PDFs | [MacTeX](https://www.tug.org/mactex/) (macOS) · [MiKTeX](https://miktex.org/download) (Windows) · [TeX Live](https://www.tug.org/texlive/) (Linux) |
+| **VS Code** | the editor. Its settings are already in this repository, so builds just work | [code.visualstudio.com](https://code.visualstudio.com/) |
+| **uv** | python package manager; runs the two commands below. | [installation guide](https://docs.astral.sh/uv/getting-started/installation/) |
+
+<details>
+<summary>Installing LaTeX with a package manager instead</summary>
 
 ```
-# 1. write the paper in manuscript/, previewing the PDF in your editor
-uv run scripts/export_to_word.py       # optional, for feedback in Word
-uv run scripts/prepare_submission.py   # then upload manuscript/submission/
+# macOS
+brew install --cask mactex
 
-# 2. reviews arrive
-uv run scripts/new_revision.py         # opens revision_1/, ready to edit
-#    mark up the manuscript, write the response letter
-uv run scripts/export_to_word.py       # optional again, manuscript and letter
-uv run scripts/prepare_submission.py   # then upload revision_1/submission/
-
-# 3. more reviews
-uv run scripts/new_revision.py         # opens revision_2/, and so on
+# Debian / Ubuntu
+sudo apt install texlive-latex-recommended texlive-latex-extra texlive-science
 ```
 
-Neither script has to be told where you are. Both work on the newest stage.
+</details>
+
+<br>
+
+**3. Open the folder in VS Code.** It will offer to install the extensions this template
+uses; click **Install**. That gives you PDF preview, coloured tracked changes, and
+spell checking.
+
+**4. Write.** Your paper is `manuscript/manuscript.tex` — put your title, authors and
+affiliations at the top, where the placeholders are. Figures go in `manuscript/figs/`,
+references in `references.bib`. Save, and the PDF updates.
+
+## The two commands
+
+Open a terminal inside the project folder (in VS Code: *Terminal → New Terminal*, which
+opens in the right place), and run:
+
+```
+uv run scripts/prepare_submission.py
+```
+
+That builds your submission into `manuscript/submission/`. Upload the three files in
+there and you are done. Nothing else in the folder needs to be touched.
+
+When the reviews arrive:
+
+```
+uv run scripts/new_revision.py
+```
+
+That opens `revision_1/`, with the manuscript ready to mark up and a response letter
+ready to write. When you have answered the comments, run `prepare_submission.py` again
+and upload what appears in `revision_1/submission/`.
+
+For the next round, `new_revision.py` again. Neither command needs to be told where you
+are; both work on the newest round. Both are safe to run as often as you like.
+
+That is the whole workflow. The rest of this file is detail you can come back to.
+
+<details>
+<summary>Running the commands without uv</summary>
+
+uv is only a convenience: it fetches a suitable Python itself, and `uv.lock` pins it so
+the scripts behave the same on every machine. They use nothing but Python's standard
+library, so any Python 3.9 or newer runs them directly:
+
+```
+python3 scripts/prepare_submission.py      # macOS, Linux
+py scripts\prepare_submission.py           # Windows, after installing python.org
+```
+
+</details>
 
 ## Stages
 
 One folder per submission. Each holds its own manuscript, figures and letter, and
-freezes when you open the next, so what you sent stays as sent.
-
-The repository ships only sources.
+freezes when you open the next, so what you sent stays as sent. The repository ships
+only sources; everything else appears as you go.
 
 ```
+references.bib              one bibliography, shared by every stage
 manuscript/
   manuscript.tex            the paper, written and submitted from here
   figs/
-references.bib              one bibliography, shared by every stage
-scripts/
-  assets/                   the letter and notes a revision starts from
-```
-
-Everything else appears as you go.
-
-```
-manuscript/submission/      the initial submission, generated
-revision_1/                 first round of review, opened by new_revision.py
+  submission/                 generated
+revision_1/                 opened by new_revision.py
   manuscript_annotated.tex    the manuscript, with changes marked
   response_to_reviewers.tex
   reviewer_comments.md, cover_letter.md
   figs/
   submission/                 generated
 revision_2/                 second round, and so on
+scripts/assets/             the letter and notes a revision starts from
 ```
 
-Anything under a `submission/` folder is wiped and rebuilt on every run, so never
-edit it. In particular, you never keep a clean copy of the manuscript in step with the
-marked-up one. Accepting the tracked changes happens inside the generator.
-
-## Setup
-
-**1. VS Code**, recommended. Its settings are included here, so builds use the right
-recipe, tracked changes are coloured as you type, and saving rebuilds the file you are
-editing. On opening the folder, VS Code offers to install these extensions.
-
-| Extension | | What it does |
-|---|---|---|
-| [LaTeX Workshop](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop) | **required** | builds and previews the PDF, and jumps between source and page with SyncTeX |
-| [Highlight](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-highlight) | recommended | colours `\added` blue and `\deleted` struck-through grey in the editor, matching the annotated PDF |
-| [LTeX](https://marketplace.visualstudio.com/items?itemName=valentjn.vscode-ltex) | optional | grammar and spell checking that parses LaTeX rather than flagging its markup |
-| [ZoTeX](https://marketplace.visualstudio.com/items?itemName=raykr.zotex) or [Zotero](https://marketplace.visualstudio.com/items?itemName=mblode.zotero) | optional | inserts `\cite{…}` keys from a Zotero library |
-
-**2. A LaTeX installation.** MacTeX on macOS, MiKTeX or TeX Live on Windows, TeX Live
-on Linux. If `pdflatex` already works in your editor, you have this.
-
-**3. A way to run the two scripts.** They use only the Python standard library, so any
-Python 3.9 or newer will do, as `python3 scripts/prepare_submission.py`. For a setup
-that needs no thought about which Python is which,
-[uv](https://docs.astral.sh/uv/getting-started/installation/) is recommended. Its
-installation guide has the one-line command for each system, it fetches a suitable
-interpreter itself, and `uv.lock` pins that interpreter so the scripts behave the same
-on every machine. The rest of this file writes `uv run` for brevity.
-
-Run the scripts from a Terminal opened in this folder. In VS Code, *Terminal → New
-Terminal* opens in the right place. Both scripts are safe to run again, since they only
-write into a `submission/` folder or create the next stage.
+Anything under `submission/` is wiped and rebuilt on every run, so never edit it.
 
 ## Writing and submitting
 
-Edit `manuscript/manuscript.tex`, put figures in `manuscript/figs/`, and add references
-to `references.bib`. Preview however you normally build LaTeX. Iterate as long as you
-like, sending the PDF round and rewriting. Lines are numbered from the abstract onwards,
-every fifth one, so coauthors can point at them.
+Edit `manuscript/manuscript.tex`, put figures in `manuscript/figs/`, add references to
+`references.bib`. Lines are numbered from the abstract on, every fifth one, so coauthors
+can point at them.
 
-`references.bib` is cited as `\bibliography{../references}` and shared by every stage,
-so there is one bibliography for the whole paper. Point Zotero or Citavi at it as an
-export target and let them keep it in sync. Only the entries you actually cite end up
-in the files you send, and no `.bib` is sent at all.
+A long paper need not be one file: `\input{sections/results.tex}` works, and the
+generator splices those files into the manuscript it ships.
 
-Notes to yourselves can stay in the source. The template ships a target journal, a list
-of suggested reviewers and a table of contents, and `\hl{…}` highlights anything still
-open. Keep whatever helps while the paper circulates internally, because the generator
-strips all of it and none of it can reach a journal.
+`references.bib` is shared by every stage. Point Zotero or Citavi at it as an export
+target. Only the entries you cite are sent, and no `.bib` is sent at all.
 
-When the manuscript is ready, run `prepare_submission.py`. There is no annotated
-manuscript or response letter yet, so `manuscript/submission/` holds the manuscript, the
-graphical abstract and the source zip. Send those. Once you open the first revision,
-`manuscript/` freezes with that package beside it as the record of what was submitted.
+Notes to yourselves can stay in the source, but what happens to each kind differs:
+
+- **Comments, the table of contents and the draft date are removed.** They cannot reach
+  a journal.
+- **The `Target Journal` and `Reviewer Suggestions` sections are removed whole**, by
+  title, case-insensitively. Rename them and they stay in.
+- **`\hl{…}` loses only its colour.** The words are kept, because highlighting usually
+  marks real text you are unsure of. Every surviving highlight is listed as a warning
+  when you build — read that list.
+
+Run `prepare_submission.py` when ready. The first time there is no annotated manuscript
+or letter yet, so you get the manuscript, the graphical abstract and the source zip.
+Once you open the first revision, `manuscript/` freezes with that package beside it.
 
 ## Revising
 
-Run `new_revision.py`. The new folder arrives ready to work in, with the manuscript
-renamed to `manuscript_annotated.tex` and the `changes` package loaded into its
-preamble, and a response letter and two note files placed beside it. From here on a
-round means editing two files.
+Run `new_revision.py`. The folder arrives with the manuscript renamed to
+`manuscript_annotated.tex`, the `changes` package in its preamble, and a letter and two
+note files beside it. The letter's title and author block are copied out of the
+manuscript as it is written, so you never type them twice; if they change later, correct
+them in the letter directly. From the second round on it also accepts the previous round's
+tracked changes, so you start from settled text and mark up only what is new
+(`--no-accept-previous` keeps them). `\linelabel` anchors are never touched — the letter
+points at them.
 
-`manuscript_annotated.tex`, the manuscript, with every change marked.
+A round means editing two files.
 
 ```latex
+% manuscript_annotated.tex
 \replaced{the new wording}{the old wording}
 \added{a sentence a reviewer asked for}
 \deleted{a sentence a reviewer found redundant}
 \linelabel{ln:gap}      % an anchor the response letter can point at
 ```
 
-`response_to_reviewers.tex`, the letter, with the conventions ready to use.
-
 ```latex
+% response_to_reviewers.tex
 \comm{1.1}{The comment, quoted verbatim.}          % italics
 \begin{response} Your answer. \end{response}
 \begin{revisedtext} The revised text. \end{revisedtext}   % blue
@@ -144,90 +170,92 @@ round means editing two files.
 \todoitem{Not addressed yet.}                      % internal marker
 ```
 
-Work through the comments in `reviewer_comments.md` if that helps, and draft the cover
-letter in `cover_letter.md`. Neither is submitted.
+Work through `reviewer_comments.md` and draft `cover_letter.md` if they help; neither is
+submitted.
 
-One ordering matters while previewing. The letter takes its line numbers from the
-manuscript's `.aux`, so save the manuscript and let it build before rebuilding the
-letter, or the letter still shows the previous numbers. A reference that cannot be
-resolved prints in red rather than as a silent `??`.
+One ordering matters while previewing: the letter takes its line numbers from the
+manuscript's `.aux`, so build the manuscript first, or the letter shows the previous
+numbers.
 
-Then run `prepare_submission.py`. Send the five files in `revision_1/submission/` and
-not your local previews, which carry different line numbers because the generated
-manuscript drops the internal front matter and every line shifts. The package is always
-consistent with itself, since the generator builds the manuscript and the letter
-together, in that order.
+Then run `prepare_submission.py` and send the five files in `revision_1/submission/` —
+not your local previews, whose line numbers differ because the generated manuscript
+drops the internal front matter and every line shifts. The generated package is always
+consistent with itself.
 
-For the next round, run `new_revision.py` again. Clear the markup you have just
-answered in the new `manuscript_annotated.tex` before marking up the new round.
+## What the generator checks
 
-## Word export for internal review
+Before it calls a package finished, `prepare_submission.py` checks it over.
 
-Some people would rather write their comments in Word. This exports the current stage
-for them.
+**These stop the run:** a missing `pdflatex`, a LaTeX error, an undefined citation, a
+figure that is not where the manuscript says, or a `\lnp{…}` pointing at a `\linelabel`
+that does not exist.
 
+**These warn, and build anyway:** placeholder text (`XX`, `TO BE DONE`, `\todoitem`) and
+surviving `\hl{…}` notes, reported with file and line — a package is often assembled
+before the last numbers land.
+
+`--no-build` writes the `.tex` files and stops, which is useful for handing sources to a
+coauthor.
+
+## Word export
+
+For colleagues who would rather comment in Word. This is the one part that needs two
+extra programs, [pandoc](https://pandoc.org/installing.html) and
+[poppler](https://poppler.freedesktop.org/) — skip installing them until someone
+actually asks for a `.docx`.
+
+<details>
+<summary>Installing pandoc and poppler with a package manager</summary>
+
+```
+brew install pandoc poppler          # macOS
+sudo apt install pandoc poppler-utils
+scoop install pandoc poppler         # Windows, or run the export under WSL
+```
+
+</details>
+
+<br>
+
+Exporting word files:
 ```
 uv run scripts/export_to_word.py                          # the newest stage
 uv run scripts/export_to_word.py revision_1               # a specific stage
 uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
 ```
 
-At the manuscript stage that is the manuscript alone. In a revision it is the annotated
-manuscript and the response letter, since whoever reads the round wants both. Name a
-single `.tex` file to convert only that one. The results are written beside the sources
-as `<name>_for_review.docx` and are gitignored, being a convenience rather than a
-version of the paper. Feedback comes back as Word comments or edits that you carry into
-the `.tex` by hand.
 
-The export reads like the PDF. It runs a real LaTeX build first and takes the numbers
-from it, so citations appear as the same superscript numbers, `\citet` prints the same
-author label, several citations at once compress to the same range such as 1–3, and the
-reference list at the end is numbered in the same order. References to a figure or an
-equation carry the number LaTeX gave them, and captions are numbered to match, since
-pandoc writes neither. Figures are embedded as PNG, because Word
-cannot display the PDF figures the manuscript uses. The internal front matter is kept,
-since this is not a document a journal sees.
 
-The letter keeps its shape and its colour. Each comment becomes a heading followed by
-the comment in italics, your answer stays an indented block, and quoted manuscript text
-is indented and blue. Pandoc drops colour when it reads LaTeX, so the blue is written
-into the .docx afterwards. Line references show the numbers from the annotated
-manuscript that ships, because a Word file has no line numbers of its own, and an
-undefined label shows as `(line ??)` rather than a wrong number.
+At the manuscript stage that is the manuscript; in a revision, the annotated manuscript
+and the letter. Results are written beside the sources as `<name>_for_review.docx` and
+are gitignored. Feedback comes back as Word comments that you carry into the `.tex` by
+hand.
 
-Two things do not carry over. Equations become Word equations and lose their own
-numbering, though references to them in the text stay correct. Tracked changes are
-accepted rather than shown, so the Word manuscript reads as the revised text. The export
-needs `pandoc` and `pdftoppm` from poppler, on top of the LaTeX installation.
+The `.docx` reads like the PDF: the same citation numbers, the same reference list, the
+same figure and equation numbers. Three things do not survive. Equations lose their own
+numbering, though references to them stay correct. Tracked changes are accepted rather
+than shown. And unusual citation commands such as `\citeauthor` are named on the console
+as unhandled — check how those came out.
 
-## What the generator does
+## Coauthors who do not use this repository
 
-`uv run scripts/prepare_submission.py [stage]` works on the newest stage by default. It
+Most will not clone a git repository, and that is fine.
 
-- accepts every tracked change into a clean manuscript, and keeps an annotated one with
-  the changes visible for the editor, the latter only when the source has tracked
-  changes;
-- numbers the lines of both from the abstract, printing every fifth number;
-- removes the highlighting, the table of contents, the draft date, and the
-  `Target Journal` and `Reviewer Suggestions` sections;
-- keeps the graphical abstract in the document and exports it separately for the upload
-  slot journals reserve for it;
-- inlines the cited references as a `thebibliography` block, so the shipped `.tex` needs
-  no `.bib` beside it;
-- rebuilds the response letter in place, so its line references match the shipped
-  manuscript;
-- strips your comments, leaving one line saying where the file came from;
-- archives the source and figures into `latex_source_submission.zip`, then removes the
-  loose files, leaving a folder where every file is one upload;
-- warns if placeholder text such as `XX`, `HARDWARE`, `TO BE DONE` or `\todoitem`
-  survived, naming file and line, and builds anyway.
+- **Word:** export the stage, send the `.docx`, carry their comments back yourself.
+- **A zip of the sources**, for a coauthor on Overleaf: `prepare_submission.py
+  --no-build` writes the generated `.tex` and figures into `submission/` without
+  building or archiving them, with the bibliography already inlined. That folder uploads
+  to Overleaf as-is. Their edits come back by hand — nothing syncs.
 
-Two flags are available. `--no-build` stops after writing the `.tex` files, and
-`--outdir` writes elsewhere.
+In VS Code you can jump between the source and the PDF: ctrl/cmd+alt+j in the editor,
+ctrl/cmd+click in the PDF.
 
-## Builds
+<details>
+<summary>Using an editor other than VS Code</summary>
 
-The recipe is pdflatex, bibtex, pdflatex, pdflatex, with output beside the source.
+The build recipe is pdflatex, bibtex, pdflatex, pdflatex, with the output beside the
+source, run from **inside the stage folder** — `bibtex` resolves `../references`
+relative to the working directory, so building from the repository root fails.
 
 ```
 pdflatex -synctex=1 -interaction=nonstopmode -file-line-error <file>.tex
@@ -235,15 +263,33 @@ bibtex <file>
 pdflatex … ; pdflatex …
 ```
 
-Run it from inside the stage folder, since `bibtex` resolves `../references` relative to
-the working directory and building from the repository root fails. VS Code has this
-configured in `.vscode/settings.json`, and the generator uses the same flags, so a
-previewed PDF and a submitted PDF come out identical. Other editors need the four steps
-set up by hand.
+The generator uses the same flags, so a previewed PDF and a submitted PDF come out
+identical. VS Code has this configured already in `.vscode/settings.json`.
 
-The `-synctex=1` flag is what lets you jump between source and page. In VS Code press
-ctrl/cmd+alt+j in the editor to find the spot in the PDF, and ctrl/cmd+click in the PDF
-to jump back to the line that produced it.
+</details>
 
-Rendered PDFs are tracked, so each stage's output sits in the history beside its source.
-Intermediate files such as `.aux`, `.log` and `.synctex.gz` are gitignored.
+<details>
+<summary>Changing the scripts</summary>
+
+`uv run scripts/selftest.py` copies the template to a temporary directory, runs the
+whole lifecycle through it, and reads the generated files back to confirm what did and
+did not survive. Nothing is written inside your repository. Run it after changing
+anything under `scripts/` or the manuscript preamble; it also runs on every push.
+
+</details>
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `not found on PATH: pdflatex` | LaTeX is not installed, or the terminal has not picked it up. If your editor builds fine, open a new terminal. |
+| the build fails from the repository root | run it from inside the stage folder — `bibtex` resolves `../references` relative to the working directory |
+| the letter shows last time's line numbers | build the manuscript first; the letter reads its `.aux` and is always one build behind |
+| `points at line labels the manuscript does not define` | a `\lnp{ln:x}` with no matching `\linelabel{ln:x}`. Add the anchor, or drop the reference. |
+| `[line ?? -- rebuild …]` in a preview | the same thing, seen in the PDF. No package can ship with one. |
+| a figure is missing | `\includegraphics` paths are relative to the stage folder, so figures live in `<stage>/figs/` |
+| ``File `something.sty' not found`` | a missing LaTeX package: `sudo tlmgr install something`, or MiKTeX offers to fetch it |
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
