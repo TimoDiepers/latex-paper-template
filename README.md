@@ -4,23 +4,23 @@ Write your paper once. This repository turns it into the files a journal asks fo
 keeps every version you sent exactly as you sent it.
 
 ```
-manuscript/manuscript.tex            you write the paper here
+manuscript/manuscript.tex            ← you write the paper here
          │
          │   uv run tools/submit.py
          v
-manuscript/submission/               ← upload these to the journal
+manuscript/submission/               ← files for journal submission
          │
-         ┊   reviews arrive
+         ┊   * reviews arrive *
          │
          │   uv run tools/revise.py
          v
 revision_1/
-  manuscript_annotated.tex           mark up what you changed
-  response_to_reviewers.tex          answer the reviewers
+  manuscript_annotated.tex           ← mark up your changes
+  response_to_reviewers.tex          ← answer the reviewers
          │
          │   uv run tools/submit.py
          v
-revision_1/submission/               ← upload these
+revision_1/submission/               ← upload files
          │
          ┊   more reviews → revise.py → revision_2/ → and so on
 ``` 
