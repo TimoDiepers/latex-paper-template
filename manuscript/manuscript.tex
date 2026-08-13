@@ -5,7 +5,7 @@
 \usepackage{authblk}
 \usepackage{fullpage}
 \usepackage{amssymb,amsmath}
-\usepackage[utf8x]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{siunitx}
 \usepackage{isomath}
@@ -36,6 +36,8 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% The title, the authors and the affiliations. scripts/new_revision.py reads them
+% from here when it writes a response letter, so they are only ever typed once.
 \title{ \bfseries Working Title of the Paper}
 \author[a]{First Author}
 \author[b]{Second Author}
@@ -58,6 +60,11 @@
 \linenumbers
 
 \section*{Abstract}
+% An anchor for the response letter, which writes \lnp{ln:abstract} and gets
+% back "(line 2)" -- whichever line this text has drifted to by the time the
+% letter is built. Add one wherever a reviewer needs to be sent, and keep the
+% ln: prefix so the anchors stay recognisable among the other labels.
+\linelabel{ln:abstract}%
 One paragraph summarising the problem, what was done about it, and what came out.
 State the gap in the first two sentences, the approach in the middle, and the
 headline result at the end \cite{firstReference2024}. Keep it to the word limit of
@@ -100,6 +107,7 @@ Open with the wider context and narrow towards the specific gap this paper
 closes \cite{firstReference2024, secondReference2023}. One paragraph per step of
 that narrowing usually suffices.
 
+\linelabel{ln:gap}%
 State what remains unresolved, and why the existing approaches cannot resolve it
 \cite{thirdReference2022}. Be concrete about the limitation rather than listing
 papers. Where a study is the subject of the sentence, name it instead, as
@@ -113,6 +121,7 @@ the paper presents it. Several references at once compress into a range
 
 \section{Methods} \label{sec:methods}
 
+\linelabel{ln:methods}%
 Describe the approach so that someone else could repeat it. Introduce notation
 once and use it consistently. Let $\vectorsym{x}$ denote the vector of decision
 variables and $\matrixsym{A}$ the coefficient matrix, so that
@@ -150,6 +159,7 @@ documentation rather than reproducing it.
 
 \section{Results} \label{sec:results}
 
+\linelabel{ln:results}%
 Set up the case or dataset first, then report what it produced. Quantify by stating
 the number, its unit, and what it should be compared against.
 

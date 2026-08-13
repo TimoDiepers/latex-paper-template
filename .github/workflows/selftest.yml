@@ -1,0 +1,37 @@
+# Runs scripts/selftest.py, which drives the whole lifecycle -- first submission,
+# a revision, a second round, the Word export -- on a throwaway copy and reads the
+# generated files back. It is here so that a change to the scripts, or to the
+# manuscript preamble, cannot quietly break the package a journal receives.
+name: selftest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9" # the oldest the scripts claim to support
+
+      # The manuscript's preamble decides this list. If a build fails here with
+      # "File `something.sty' not found", the package providing it is missing --
+      # `apt-file search something.sty` names it, or swap the lot for texlive-full,
+      # which is far larger but needs no maintenance.
+      - name: Install LaTeX, pandoc and poppler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-science texlive-humanities \
+            texlive-plain-generic texlive-bibtex-extra \
+            pandoc poppler-utils
+
+      - name: Self-test
+        run: python3 scripts/selftest.py

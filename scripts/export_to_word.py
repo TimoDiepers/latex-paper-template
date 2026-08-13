@@ -19,6 +19,9 @@ real LaTeX build first and takes what it needs from it.
 - Citations and the bibliography. Both come from the .bbl that bibtex wrote, so the
   superscript numbers, the author labels natbib prints for \\citet, the compression of
   several citations into a range and the order of the reference list match the PDF.
+  natbib's optional arguments are kept, so \\citep[see][p.~5]{key} still says which page
+  it means. Anything else in the \\cite family is reported on stderr rather than handed
+  to pandoc, which would mangle it silently.
 - Figures. Word cannot display a PDF image, so PDF figures are converted to PNG.
 - Macros. Pandoc reads \\newcommand but knows nothing of the packages behind isomath's
   math symbols, or of the letter's own commands, so both are translated first.
@@ -156,8 +159,30 @@ def compress(numbers: list[int]) -> str:
     return ",".join(parts)
 
 
-def resolve_citations(text: str, cites: dict[str, tuple[int, str]]) -> tuple[str, list[str]]:
-    """Render \\cite as superscript numbers and \\citet as author plus number."""
+# The forms this export can render, longest name first so \citet is never read as
+# \cite followed by a stray t. \citealt and \citealp differ from \citet and \citep only
+# in the brackets natbib puts round the label, and this style has none, so they are the
+# same thing here. Each may carry one or two optional arguments before the keys.
+CITE_FORMS = re.compile(
+    r"\\(citet|citep|citealt|citealp|cite)(?![a-zA-Z])"
+    r"(?:\[([^]]*)\])?(?:\[([^]]*)\])?"
+    r"\{([^}]*)\}"
+)
+# The rest of the family -- \citeauthor, \citeyear, \citenum and whatever else a
+# manuscript reaches for. Matched after the substitutions, when nothing handled is left.
+CITE_LEFTOVERS = re.compile(r"\\(cite[a-zA-Z]*)(?![a-zA-Z])")
+
+TEXTUAL_FORMS = ("citet", "citealt")
+
+
+def resolve_citations(
+    text: str, cites: dict[str, tuple[int, str]]
+) -> tuple[str, list[str], list[str]]:
+    """Render \\cite as superscript numbers and \\citet as author plus number.
+
+    Returns the text, the keys that were not in the bibliography, and the \\cite-family
+    commands that were left untouched because this export cannot render them.
+    """
     missing: list[str] = []
 
     def numbers(keys: list[str]) -> str:
@@ -169,18 +194,28 @@ def resolve_citations(text: str, cites: dict[str, tuple[int, str]]) -> tuple[str
                 missing.append(k)
         return compress(found)
 
-    def textual(m: re.Match) -> str:
-        keys = [k.strip() for k in m.group(1).split(",")]
+    def render(m: re.Match) -> str:
+        command, first, second, keylist = m.groups()
+        # natbib reads a lone optional argument as the post-note, and a pair as the
+        # pre-note then the post-note.
+        pre, post = (first, second) if second is not None else ("", first or "")
+        keys = [k.strip() for k in keylist.split(",")]
         author = cites[keys[0]][1] if keys[0] in cites else ""
-        return f"{author}\\textsuperscript{{{numbers(keys)}}}"
+        label = author if command in TEXTUAL_FORMS else ""
+        # A page or chapter is half the reason for citing at all, so the notes are kept
+        # rather than dropped. The pre-note leads straight into the number, which is
+        # raised and so needs nothing between it and the word it follows; the post-note
+        # cannot be raised with it and would read as part of the sentence, so it is
+        # parenthesised.
+        note = f" ({post})" if post.strip() else ""
+        # A pre-note runs straight into a raised number, as any other word does, but an
+        # author label is ordinary text and needs the space between the two words.
+        lead = f"{pre.rstrip()} " if pre.strip() and label else pre
+        return f"{lead}{label}\\textsuperscript{{{numbers(keys)}}}{note}"
 
-    def parenthetical(m: re.Match) -> str:
-        keys = [k.strip() for k in m.group(1).split(",")]
-        return f"\\textsuperscript{{{numbers(keys)}}}"
-
-    text = re.sub(r"\\citet\{([^}]*)\}", textual, text)
-    text = re.sub(r"\\cite[p]?\{([^}]*)\}", parenthetical, text)
-    return text, missing
+    text = CITE_FORMS.sub(render, text)
+    unhandled = sorted({"\\" + m.group(1) for m in CITE_LEFTOVERS.finditer(text)})
+    return text, missing, unhandled
 
 
 def replace_macro(text: str, name: str, nargs: int, render) -> str:
@@ -194,10 +229,15 @@ def replace_macro(text: str, name: str, nargs: int, render) -> str:
         text = text[: m.start()] + render(*args) + text[end:]
 
 
-def prepare_manuscript(src_text: str) -> str:
-    """Accept tracked changes and remove what Word has no use for."""
+def prepare_manuscript(src_text: str, basedir: Path) -> str:
+    """Accept tracked changes and remove what Word has no use for.
+
+    The working copy is built in a temporary directory, so anything the source reaches
+    for beside itself -- the shared title block, a section in its own file -- has to be
+    spliced in here or the build cannot find it.
+    """
     # Comments go first, so a macro mentioned in one is not mistaken for a use of it.
-    text = ps.strip_comments(ps.flatten(src_text, ps.FLATTEN_CLEAN))
+    text = ps.strip_comments(ps.flatten(ps.inline_inputs(src_text, basedir), ps.FLATTEN_CLEAN))
     text = "\n".join(
         line for line in text.split("\n") if not any(tok in line for tok in PREAMBLE_DROP)
     )
@@ -239,7 +279,7 @@ def drop_definition(text: str, kind: str, name: str, groups: int) -> str:
         text = text[: m.start()] + text[i:].lstrip("\n")
 
 
-def line_labels(src_text: str, work: Path) -> dict[str, str]:
+def line_labels(src_text: str, work: Path, basedir: Path) -> dict[str, str]:
     """Build the manuscript with its line numbers on, to learn what \\linelabel resolves to.
 
     A Word file has no line numbers, so the letter's references have to point at the
@@ -247,8 +287,11 @@ def line_labels(src_text: str, work: Path) -> dict[str, str]:
     prepare_submission.py ships, tracked changes visible and internal front matter gone.
     Numbering the accepted text instead would put ln:gap at line 28 where the reviewer
     sees 13.
+
+    basedir is where the source lives, not the working directory: an \\input names a
+    path relative to the file that holds it.
     """
-    text = ps.transform(src_text, "manuscript", annotated=True)
+    text = ps.transform(src_text, basedir, annotated=True)
     text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: r"\bibliography{references}", text)
     numbered = work / "numbered.tex"
     numbered.write_text(text)
@@ -436,6 +479,20 @@ def report_missing(keys: list[str]) -> None:
         print(f"    unresolved: {', '.join(sorted(set(keys)))}", file=sys.stderr)
 
 
+def report_unhandled(commands: list[str]) -> None:
+    """Name the citation commands that reached pandoc unconverted.
+
+    Pandoc renders these wrongly or swallows them outright, and the author would
+    otherwise hear about it from the coauthor who opened the .docx.
+    """
+    if commands:
+        print(
+            "    citation commands this export cannot render, left for pandoc: "
+            f"{', '.join(sorted(set(commands)))}",
+            file=sys.stderr,
+        )
+
+
 def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
     """Convert a stage's documents, or only the file named, and return what was written."""
     source = ps.find_source(stage)
@@ -445,7 +502,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
     # The manuscript is built even when only the letter was asked for, because the
     # letter's line references are numbers out of the manuscript's .aux.
     tex = work / "manuscript.tex"
-    tex.write_text(prepare_manuscript(source.read_text()))
+    tex.write_text(prepare_manuscript(source.read_text(), source.parent))
     shutil.copy2(ps.BIB, work / ps.BIB.name)
     copy_figures(tex.read_text(), stage, work)
 
@@ -462,7 +519,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
 
     if only is None or only.name == source.name:
         text, refs, missing = resolve_references(tex.read_text(), labels)
-        text, uncited = resolve_citations(text, cites)
+        text, uncited, unhandled = resolve_citations(text, cites)
         text, captions = number_captions(text)
         text = re.sub(r"\\bibliographystyle\{[^}]*\}\n", "", text)
         text = re.sub(r"\\bibliography\{[^}]*\}", lambda _: bibliography, text)
@@ -476,14 +533,18 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
             f"{captions} captions numbered, {figures} figures"
         )
         report_missing(missing + uncited)
+        report_unhandled(unhandled)
 
     letter_source = stage / LETTER
     if letter_source.exists() and (only is None or only.name == LETTER):
         letter = work / LETTER
-        letter_labels = {**labels, **line_labels(source.read_text(), work)}
-        text, missing = prepare_letter(letter_source.read_text(), letter_labels)
+        letter_labels = {**labels, **line_labels(source.read_text(), work, source.parent)}
+        # The letter shares the manuscript's title block through \input, and it too is
+        # written to the working directory, where that file is out of reach.
+        letter_text = ps.inline_inputs(letter_source.read_text(), letter_source.parent)
+        text, missing = prepare_letter(letter_text, letter_labels)
         text, refs, ref_missing = resolve_references(text, letter_labels)
-        text, uncited = resolve_citations(text, cites)
+        text, uncited, unhandled = resolve_citations(text, cites)
         copy_figures(text, stage, work)
         text, figures = convert_figures(text, work)
         letter.write_text(text)
@@ -494,6 +555,7 @@ def export(stage: Path, work: Path, only: Path | None) -> list[Path]:
         written.append(target)
         print(f"  {LETTER}: {refs} references, {coloured} passages coloured")
         report_missing(missing + ref_missing + uncited)
+        report_unhandled(unhandled)
 
     return written
 
