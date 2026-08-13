@@ -18,19 +18,13 @@ they are the same every time.
 [this repository](https://github.com/TimoDiepers/latex-paper-template), give it a name,
 then download it or clone it to your computer.
 
-**2. Install three things.** All three are ordinary installers — download, run, done.
+**2. Install three things.** These are our recommendations - other options exist.
 
 | | What it is | Where |
 |---|---|---|
 | **A LaTeX distribution** | the program that turns `.tex` files into PDFs | [MacTeX](https://www.tug.org/mactex/) (macOS) · [MiKTeX](https://miktex.org/download) (Windows) · [TeX Live](https://www.tug.org/texlive/) (Linux) |
 | **VS Code** | the editor. Its settings are already in this repository, so builds just work | [code.visualstudio.com](https://code.visualstudio.com/) |
-| **uv** | runs the two commands below. Small and quick to install | [installation guide](https://docs.astral.sh/uv/getting-started/installation/) |
-
-> **The LaTeX distribution is a separate install.** The VS Code LaTeX extension does not
-> include it — the extension only *runs* LaTeX and shows you the PDF. Without a
-> distribution you will get "pdflatex not found". These downloads are large (a few GB)
-> and take a while, which is normal. On Windows, MiKTeX is the friendlier choice: it
-> fetches any missing LaTeX package by itself as you build.
+| **uv** | python package manager; runs the two commands below. | [installation guide](https://docs.astral.sh/uv/getting-started/installation/) |
 
 <details>
 <summary>Installing LaTeX with a package manager instead</summary>
@@ -44,6 +38,8 @@ sudo apt install texlive-latex-recommended texlive-latex-extra texlive-science
 ```
 
 </details>
+
+<br>
 
 **3. Open the folder in VS Code.** It will offer to install the extensions this template
 uses; click **Install**. That gives you PDF preview, coloured tracked changes, and
@@ -208,12 +204,6 @@ extra programs, [pandoc](https://pandoc.org/installing.html) and
 [poppler](https://poppler.freedesktop.org/) — skip installing them until someone
 actually asks for a `.docx`.
 
-```
-uv run scripts/export_to_word.py                          # the newest stage
-uv run scripts/export_to_word.py revision_1               # a specific stage
-uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
-```
-
 <details>
 <summary>Installing pandoc and poppler with a package manager</summary>
 
@@ -224,6 +214,17 @@ scoop install pandoc poppler         # Windows, or run the export under WSL
 ```
 
 </details>
+
+<br>
+
+Exporting word files:
+```
+uv run scripts/export_to_word.py                          # the newest stage
+uv run scripts/export_to_word.py revision_1               # a specific stage
+uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
+```
+
+
 
 At the manuscript stage that is the manuscript; in a revision, the annotated manuscript
 and the letter. Results are written beside the sources as `<name>_for_review.docx` and
