@@ -12,12 +12,12 @@ writes the first submission, opens a revision, marks it up, submits that too, an
 then reads the generated files back to confirm what did and did not survive.
 Nothing is written inside your repository.
 
-Run it after changing anything under scripts/, or after reworking the preamble of
+Run it after changing anything under tools/, or after reworking the preamble of
 manuscript/manuscript.tex.
 
 Usage:
-    uv run scripts/selftest.py
-    uv run scripts/selftest.py --keep    # leave the temporary copy for inspection
+    uv run tools/selftest.py
+    uv run tools/selftest.py --keep    # leave the temporary copy for inspection
 
 Needs pdflatex and bibtex, the same as a normal build.
 """
@@ -34,9 +34,9 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import prepare_submission as ps  # noqa: E402  (same directory, shared helpers)
+import submit  # noqa: E402  (same directory, shared helpers)
 
-REPO = ps.REPO
+REPO = submit.REPO
 
 # Copying the working tree rather than exporting from git, so that what is tested
 # is what is on disk right now -- including changes not yet committed.
@@ -61,7 +61,7 @@ def copy_repo(dst: Path) -> None:
 
 def run(script: str, *args: str, cwd: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, str(cwd / "scripts" / script), *args],
+        [sys.executable, str(cwd / "tools" / script), *args],
         cwd=cwd,
         capture_output=True,
         text=True,
@@ -97,8 +97,8 @@ def mark_up(path: Path) -> None:
 
 def test_first_submission(work: Path) -> None:
     print("\nfirst submission")
-    result = run("prepare_submission.py", cwd=work)
-    check(result.returncode == 0, f"prepare_submission.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
+    result = run("submit.py", cwd=work)
+    check(result.returncode == 0, f"submit.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
     outdir = work / "manuscript" / "submission"
     check((outdir / "manuscript_clean.pdf").exists(), "manuscript_clean.pdf written")
     check(
@@ -115,7 +115,7 @@ def test_first_submission(work: Path) -> None:
     )
 
     shipped = submission_text(outdir, "manuscript_clean.tex")
-    for title in ps.INTERNAL_SECTIONS:
+    for title in submit.INTERNAL_SECTIONS:
         check(title not in shipped, f"the {title} section is gone")
     check(r"\hl{" not in shipped, "no highlighting reaches the journal")
     check(r"\tableofcontents" not in shipped, "no table of contents")
@@ -129,7 +129,7 @@ def test_first_submission(work: Path) -> None:
     source_comments = [
         " ".join(line[cut + 1 :].split())
         for line in (REPO / "manuscript" / "manuscript.tex").read_text().split("\n")
-        if (cut := ps.comment_start(line)) is not None and len(line[cut + 1 :].strip()) > 20
+        if (cut := submit.comment_start(line)) is not None and len(line[cut + 1 :].strip()) > 20
     ]
     check(bool(source_comments), "the manuscript has comments to strip in the first place")
     check(
@@ -141,8 +141,8 @@ def test_first_submission(work: Path) -> None:
 
 def test_revision(work: Path) -> None:
     print("\nopening a revision")
-    result = run("new_revision.py", cwd=work)
-    check(result.returncode == 0, f"new_revision.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
+    result = run("revise.py", cwd=work)
+    check(result.returncode == 0, f"revise.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
     stage = work / "revision_1"
     annotated = stage / "manuscript_annotated.tex"
     check(annotated.exists(), "manuscript_annotated.tex opened")
@@ -158,8 +158,8 @@ def test_revision(work: Path) -> None:
 
     print("\nsubmitting the revision")
     mark_up(annotated)
-    result = run("prepare_submission.py", cwd=work)
-    check(result.returncode == 0, f"prepare_submission.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
+    result = run("submit.py", cwd=work)
+    check(result.returncode == 0, f"submit.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
     outdir = stage / "submission"
     check((outdir / "manuscript_clean.pdf").exists(), "the clean manuscript is built")
     check((outdir / "manuscript_annotated.pdf").exists(), "so is the annotated one")
@@ -179,8 +179,8 @@ def test_revision(work: Path) -> None:
 def test_second_round(work: Path) -> None:
     """Round two starts from round one's markup, which should already be settled."""
     print("\nopening a second round")
-    result = run("new_revision.py", cwd=work)
-    check(result.returncode == 0, f"new_revision.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
+    result = run("revise.py", cwd=work)
+    check(result.returncode == 0, f"revise.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
     stage = work / "revision_2"
     annotated = (stage / "manuscript_annotated.tex").read_text()
     check(
@@ -193,7 +193,7 @@ def test_second_round(work: Path) -> None:
     check((stage / "reviewer_comments.md").exists(), "this round gets its notes file too")
     check((stage / "cover_letter.md").exists(), "and its cover letter")
 
-    result = run("new_revision.py", "--no-accept-previous", "--from", "revision_1", "--to",
+    result = run("revise.py", "--no-accept-previous", "--from", "revision_1", "--to",
                  "revision_9", cwd=work)
     check(result.returncode == 0, "--no-accept-previous is accepted")
     check(
@@ -214,7 +214,7 @@ def test_guards(work: Path) -> None:
 
     kept = annotated.read_text()
     annotated.write_text(kept.replace(r"\linelabel{ln:gap}", "", 1))
-    result = run("prepare_submission.py", name, cwd=work)
+    result = run("submit.py", name, cwd=work)
     check(result.returncode != 0, "a letter pointing at a missing line label stops the run")
     check("ln:gap" in result.stderr, "and the message names the label")
     check("Traceback" not in result.stderr, "reported as a sentence, not a traceback")
@@ -223,11 +223,11 @@ def test_guards(work: Path) -> None:
     outside = work / "not-a-submission-folder"
     outside.mkdir()
     (outside / "important.txt").write_text("do not delete me\n")
-    result = run("prepare_submission.py", name, "--outdir", str(outside), cwd=work)
+    result = run("submit.py", name, "--outdir", str(outside), cwd=work)
     check(result.returncode != 0, "--outdir refuses to empty a folder that is not ours")
     check((outside / "important.txt").exists(), "and the files in it are still there")
 
-    result = run("prepare_submission.py", name, "--no-build", cwd=work)
+    result = run("submit.py", name, "--no-build", cwd=work)
     check(result.returncode == 0, "--no-build writes the sources without building")
     check((stage / "submission" / "manuscript_clean.tex").exists(), "leaving the .tex in place")
 
@@ -239,8 +239,8 @@ def test_word_export(work: Path) -> None:
     if missing:
         print(f"  skip  not installed: {', '.join(missing)}")
         return
-    result = run("export_to_word.py", "revision_1", cwd=work)
-    check(result.returncode == 0, f"export_to_word.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
+    result = run("to_word.py", "revision_1", cwd=work)
+    check(result.returncode == 0, f"to_word.py exits 0{chr(10) + result.stderr if result.returncode else ''}")
     stage = work / "revision_1"
     manuscript = stage / "manuscript_annotated_for_review.docx"
     letter = stage / "response_to_reviewers_for_review.docx"
@@ -262,7 +262,7 @@ def main() -> int:
     ap.add_argument("--keep", action="store_true", help="do not delete the temporary copy")
     args = ap.parse_args()
 
-    ps.require(*ps.REQUIRED_TOOLS)
+    submit.require(*submit.REQUIRED_TOOLS)
 
     tmp = Path(tempfile.mkdtemp(prefix="paper-selftest-"))
     work = tmp / "paper"
@@ -292,4 +292,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(ps.run_cli(main))
+    sys.exit(submit.run_cli(main))

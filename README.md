@@ -3,14 +3,33 @@
 Write your paper once. This repository turns it into the files a journal asks for, and
 keeps every version you sent exactly as you sent it.
 
-You edit one manuscript. When you are ready to submit, one command produces the upload
-package: the PDF, the graphical abstract, and a zip of the sources, with the internal
-notes stripped out and the bibliography folded in. When the reviews come back, another
-command opens a revision folder with the response letter ready to fill in — and the
-previous round's package stays frozen beside it as the record of what you sent.
+```
+   manuscript/manuscript.tex            you write the paper here
+            │
+            │   uv run tools/submit.py
+            v
+   manuscript/submission/               ← upload these to the journal
+            │
+            ┊   reviews arrive
+            │
+            │   uv run tools/revise.py
+            v
+   revision_1/
+     manuscript_annotated.tex           mark up what you changed
+     response_to_reviewers.tex          answer the reviewers
+            │
+            │   uv run tools/submit.py
+            v
+   revision_1/submission/               ← upload these
+            │
+            ┊   more reviews → revise.py → revision_2/ → and so on
+``` 
 
-You do not need to be comfortable with the command line. There are two commands, and
-they are the same every time.
+Two commands, the same every time. `submit.py` builds what you upload:
+the PDF, the graphical abstract and a zip of the sources, with your internal notes
+stripped out and the bibliography folded in. `revise.py` opens the next round.
+
+Each round's package is frozen where it was built, so what you sent stays as sent.
 
 ## Getting started
 
@@ -24,7 +43,7 @@ then download it or clone it to your computer.
 |---|---|---|
 | **A LaTeX distribution** | the program that turns `.tex` files into PDFs | [MacTeX](https://www.tug.org/mactex/) (macOS) · [MiKTeX](https://miktex.org/download) (Windows) · [TeX Live](https://www.tug.org/texlive/) (Linux) |
 | **VS Code** | the editor. Its settings are already in this repository, so builds just work | [code.visualstudio.com](https://code.visualstudio.com/) |
-| **uv** | python package manager; runs the two commands below. | [installation guide](https://docs.astral.sh/uv/getting-started/installation/) |
+| **uv** | python package manager; runs the two commands above. | [installation guide](https://docs.astral.sh/uv/getting-started/installation/) |
 
 <details>
 <summary>Installing LaTeX with a package manager instead</summary>
@@ -49,30 +68,15 @@ spell checking.
 affiliations at the top, where the placeholders are. Figures go in `manuscript/figs/`,
 references in `references.bib`. Save, and the PDF updates.
 
-## The two commands
+## Running the commands
 
-Open a terminal inside the project folder (in VS Code: *Terminal → New Terminal*, which
-opens in the right place), and run:
+Open a terminal inside the project folder — in VS Code, *Terminal → New Terminal* opens
+in the right place. Then run whichever of the two you need, as shown in the diagram
+above.
 
-```
-uv run scripts/prepare_submission.py
-```
-
-That builds your submission into `manuscript/submission/`. Upload the three files in
-there and you are done. Nothing else in the folder needs to be touched.
-
-When the reviews arrive:
-
-```
-uv run scripts/new_revision.py
-```
-
-That opens `revision_1/`, with the manuscript ready to mark up and a response letter
-ready to write. When you have answered the comments, run `prepare_submission.py` again
-and upload what appears in `revision_1/submission/`.
-
-For the next round, `new_revision.py` again. Neither command needs to be told where you
-are; both work on the newest round. Both are safe to run as often as you like.
+Neither has to be told where you are: both work on the newest round. Both are safe to
+run as often as you like, since they only write into a `submission/` folder or create
+the next round.
 
 That is the whole workflow. The rest of this file is detail you can come back to.
 
@@ -84,8 +88,8 @@ the scripts behave the same on every machine. They use nothing but Python's stan
 library, so any Python 3.9 or newer runs them directly:
 
 ```
-python3 scripts/prepare_submission.py      # macOS, Linux
-py scripts\prepare_submission.py           # Windows, after installing python.org
+python3 tools/submit.py      # macOS, Linux
+py tools\submit.py           # Windows, after installing python.org
 ```
 
 </details>
@@ -102,14 +106,14 @@ manuscript/
   manuscript.tex            the paper, written and submitted from here
   figs/
   submission/                 generated
-revision_1/                 opened by new_revision.py
+revision_1/                 opened by revise.py
   manuscript_annotated.tex    the manuscript, with changes marked
   response_to_reviewers.tex
   reviewer_comments.md, cover_letter.md
   figs/
   submission/                 generated
 revision_2/                 second round, and so on
-scripts/assets/             the letter and notes a revision starts from
+tools/assets/             the letter and notes a revision starts from
 ```
 
 Anything under `submission/` is wiped and rebuilt on every run, so never edit it.
@@ -136,13 +140,13 @@ Notes to yourselves can stay in the source, but what happens to each kind differ
   marks real text you are unsure of. Every surviving highlight is listed as a warning
   when you build — read that list.
 
-Run `prepare_submission.py` when ready. The first time there is no annotated manuscript
+Run `submit.py` when ready. The first time there is no annotated manuscript
 or letter yet, so you get the manuscript, the graphical abstract and the source zip.
 Once you open the first revision, `manuscript/` freezes with that package beside it.
 
 ## Revising
 
-Run `new_revision.py`. The folder arrives with the manuscript renamed to
+Run `revise.py`. The folder arrives with the manuscript renamed to
 `manuscript_annotated.tex`, the `changes` package in its preamble, and a letter and two
 note files beside it. The letter's title and author block are copied out of the
 manuscript as it is written, so you never type them twice; if they change later, correct
@@ -177,14 +181,14 @@ One ordering matters while previewing: the letter takes its line numbers from th
 manuscript's `.aux`, so build the manuscript first, or the letter shows the previous
 numbers.
 
-Then run `prepare_submission.py` and send the five files in `revision_1/submission/` —
+Then run `submit.py` and send the five files in `revision_1/submission/` —
 not your local previews, whose line numbers differ because the generated manuscript
 drops the internal front matter and every line shifts. The generated package is always
 consistent with itself.
 
 ## What the generator checks
 
-Before it calls a package finished, `prepare_submission.py` checks it over.
+Before it calls a package finished, `submit.py` checks it over.
 
 **These stop the run:** a missing `pdflatex`, a LaTeX error, an undefined citation, a
 figure that is not where the manuscript says, or a `\lnp{…}` pointing at a `\linelabel`
@@ -219,9 +223,9 @@ scoop install pandoc poppler         # Windows, or run the export under WSL
 
 Exporting word files:
 ```
-uv run scripts/export_to_word.py                          # the newest stage
-uv run scripts/export_to_word.py revision_1               # a specific stage
-uv run scripts/export_to_word.py revision_1/response_to_reviewers.tex
+uv run tools/to_word.py                          # the newest stage
+uv run tools/to_word.py revision_1               # a specific stage
+uv run tools/to_word.py revision_1/response_to_reviewers.tex
 ```
 
 
@@ -242,7 +246,7 @@ as unhandled — check how those came out.
 Most will not clone a git repository, and that is fine.
 
 - **Word:** export the stage, send the `.docx`, carry their comments back yourself.
-- **A zip of the sources**, for a coauthor on Overleaf: `prepare_submission.py
+- **A zip of the sources**, for a coauthor on Overleaf: `submit.py
   --no-build` writes the generated `.tex` and figures into `submission/` without
   building or archiving them, with the bibliography already inlined. That folder uploads
   to Overleaf as-is. Their edits come back by hand — nothing syncs.
@@ -271,10 +275,10 @@ identical. VS Code has this configured already in `.vscode/settings.json`.
 <details>
 <summary>Changing the scripts</summary>
 
-`uv run scripts/selftest.py` copies the template to a temporary directory, runs the
+`uv run tools/selftest.py` copies the template to a temporary directory, runs the
 whole lifecycle through it, and reads the generated files back to confirm what did and
 did not survive. Nothing is written inside your repository. Run it after changing
-anything under `scripts/` or the manuscript preamble; it also runs on every push.
+anything under `tools/` or the manuscript preamble; it also runs on every push.
 
 </details>
 

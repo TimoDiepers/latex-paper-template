@@ -1,4 +1,4 @@
-# Runs scripts/selftest.py, which drives the whole lifecycle -- first submission,
+# Runs tools/selftest.py, which drives the whole lifecycle -- first submission,
 # a revision, a second round, the Word export -- on a throwaway copy and reads the
 # generated files back. It is here so that a change to the scripts, or to the
 # manuscript preamble, cannot quietly break the package a journal receives.
@@ -34,4 +34,4 @@ jobs:
             pandoc poppler-utils
 
       - name: Self-test
-        run: python3 scripts/selftest.py
+        run: python3 tools/selftest.py

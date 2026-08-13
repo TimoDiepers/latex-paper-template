@@ -34,9 +34,9 @@ citation stops the run. Files reached by \\input are spliced in, so a manuscript
 split across several files still ships as one.
 
 Usage:
-    uv run scripts/prepare_submission.py              # the newest stage
-    uv run scripts/prepare_submission.py revision_1   # a specific stage
-    uv run scripts/prepare_submission.py --no-build   # write the .tex files only
+    uv run tools/submit.py              # the newest stage
+    uv run tools/submit.py revision_1   # a specific stage
+    uv run tools/submit.py --no-build   # write the .tex files only
 
 No third-party dependencies; needs pdflatex and bibtex on PATH.
 """
