@@ -152,8 +152,9 @@ note files beside it. The letter's title and author block are copied out of the
 manuscript as it is written, so you never type them twice; if they change later, correct
 them in the letter directly. From the second round on it also accepts the previous round's
 tracked changes, so you start from settled text and mark up only what is new
-(`--no-accept-previous` keeps them). `\linelabel` anchors are never touched — the letter
-points at them.
+(`--no-accept-previous` keeps them). The previous round's `\linelabel` anchors go with
+them: they belong to the letter that has just been sent, which is frozen in that stage's
+`submission/`. Drop fresh anchors where this round's letter needs to point.
 
 A round means editing two files.
 
@@ -185,6 +186,47 @@ Then run `submit.py` and send the five files in `revision_1/submission/` —
 not your local previews, whose line numbers differ because the generated manuscript
 drops the internal front matter and every line shifts. The generated package is always
 consistent with itself.
+
+### Updating an existing paper
+
+A paper started from an older copy of this template carries its own `tools/`, so it does
+not get this behaviour by pulling: the folder was copied, not linked. Two ways to catch
+up, depending on how much local editing the tools have had.
+
+If `tools/` is untouched, replace it wholesale and keep your own writing:
+
+```
+cp -R /path/to/latex-paper-template/tools /path/to/your-paper/
+python3 tools/selftest.py     # 54 checks, on a throwaway copy of your repo
+```
+
+If you have edited the tools, take the accept step alone. In `tools/revise.py`:
+
+```python
+ACCEPT_MACROS = {"replaced": 0, "added": 0, "deleted": None, "linelabel": None}
+TRACKED_CHANGE = re.compile(r"\\(replaced|added|deleted)(?![a-zA-Z])")
+```
+
+`TRACKED_CHANGE` is deliberately not built from `ACCEPT_MACROS`: the anchors are
+scaffolding carried along with the accept, not changes, and counting them would
+overstate what was accepted.
+
+Either way, the stage you are working in now was opened by the old tools and still holds
+the previous round's markup. Accept it once, by hand or by reopening the stage:
+
+```
+rm -rf revision_2 && python3 tools/revise.py
+```
+
+That rebuilds the stage from `revision_1` with the accept applied — so do it before you
+have written anything into `revision_2`, and copy across any figures you have updated
+since. Reopening discards whatever is in the folder.
+
+One thing to expect afterwards: `revise.py` carries the response letter forward, and its
+`\lnp{...}` references point at anchors the accepted manuscript no longer defines, so
+`submit.py` stops with *points at line labels the manuscript does not define*. That is
+the round's letter asking to be rewritten for the new comments, which it needs anyway —
+the letter you already sent is frozen in the previous stage's `submission/`.
 
 ## What the generator checks
 

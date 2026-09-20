@@ -189,7 +189,10 @@ def test_second_round(work: Path) -> None:
     )
     check("A sentence a reviewer asked for." in annotated, "keeping what was added")
     check("Keep it to the word limit" not in annotated, "and dropping what was deleted")
-    check(r"\linelabel{ln:gap}" in annotated, "the line anchors survive, the letter needs them")
+    check(
+        r"\linelabel{" not in annotated,
+        "the previous round's line anchors go too, the letter that needed them is sent",
+    )
     check((stage / "reviewer_comments.md").exists(), "this round gets its notes file too")
     check((stage / "cover_letter.md").exists(), "and its cover letter")
 
