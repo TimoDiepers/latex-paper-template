@@ -12,7 +12,10 @@ on:
 
 jobs:
   selftest:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: Python 3.9 is past end of life and setup-python
+    # has no build of it for Ubuntu 26.04. Move this, and the minimum below, on
+    # together when 24.04 is retired.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
